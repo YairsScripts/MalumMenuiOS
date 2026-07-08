@@ -66,11 +66,19 @@ static FloatingOverlay *s_shared = nil;
     return self;
 }
 
+// ─── Hit test – only intercept touches on our UI, pass everything else ──────
+- (UIView *)hitTest:(CGPoint)pt withEvent:(UIEvent *)event {
+    UIView *hit = [super hitTest:pt withEvent:event];
+    // Only respond to touches on the floating button or menu panel
+    if (hit == self || hit == nil) return nil;  // pass through to Unity
+    return hit;
+}
+
 // ─── Build UI (call once on main thread) ────────────────────────────────────
 - (void)show {
     if (self.floatingBtn) return;              // already built
 
-    [self makeKeyAndVisible];
+    self.hidden = NO;
 
     [self buildFloatingIcon];
     [self buildMenuPanel];

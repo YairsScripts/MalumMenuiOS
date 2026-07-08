@@ -63,7 +63,7 @@ enum {
 - (NSUInteger)count;
 @end
 
-@class UIColor, UIFont, UIGestureRecognizer, UIViewController, UILabel, UIButton;
+@class UIColor, UIFont, UIGestureRecognizer, UIViewController, UILabel, UIButton, UIEvent;
 
 @interface CALayer : NSObject
 @property CGFloat cornerRadius, borderWidth, opacity, shadowOpacity, shadowRadius;
@@ -88,6 +88,7 @@ enum {
 - (void)addSubview:(UIView *)view;
 - (void)setBackgroundColor:(UIColor *)color;
 - (void)addGestureRecognizer:(UIGestureRecognizer *)g;
+- (UIView *)hitTest:(CGPoint)pt withEvent:(UIEvent *)event;
 @end
 
 @interface UIWindow : UIView
