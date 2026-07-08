@@ -105,9 +105,9 @@ static void deferred_init(void) {
 // ─── Constructor – runs when dylib is loaded ────────────────────────────────
 __attribute__((constructor))
 static void initialize() {
-    // Wait 1s for Unity to finish its own init, then install hooks & show UI.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC),
-                   dispatch_get_main_queue(), ^{
+    // Hooks modify writable __DATA.__data pointers (no code pages), safe to run
+    // at any time. UI attaches to main run loop via dispatch_async.
+    dispatch_async(dispatch_get_main_queue(), ^{
         deferred_init();
     });
 }
