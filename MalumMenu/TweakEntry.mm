@@ -122,5 +122,5 @@ static void delayed_init(void) {
 // ─── Constructor – runs when dylib is loaded ────────────────────────────────
 __attribute__((constructor))
 static void initialize() {
-    retry_hooks();
+    delayed_init();
 }
