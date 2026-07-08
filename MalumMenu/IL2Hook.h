@@ -80,6 +80,7 @@ static const IL2HookEntry il2_hook_table[] = {
 // All hooks must be installed before any game code runs (from constructor).
 static inline bool IL2Hook(uintptr_t fn_rva, void *replacement, void **original) {
     uintptr_t base = get_unity_base();
+    if (base == 0) return false;  // UnityFramework not loaded yet
 
     for (uint32_t i = 0; i < IL2_HOOK_COUNT; i++) {
         if (il2_hook_table[i].fn_rva == fn_rva) {
@@ -89,8 +90,6 @@ static inline bool IL2Hook(uintptr_t fn_rva, void *replacement, void **original)
             uintptr_t expected = base + fn_rva;
             uintptr_t actual = *entry;
             if (actual != expected) {
-                // Version mismatch – entry value doesn't match expected address.
-                // The game version may have changed; try scanning __DATA.__data.
                 return false;
             }
 

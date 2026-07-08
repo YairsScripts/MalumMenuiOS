@@ -7,6 +7,7 @@
 #import "MalumMenu.h"
 #import "FloatingOverlay.h"
 #include <dispatch/dispatch.h>
+#include <time.h>
 
 // ─── Global state definitions ───────────────────────────────────────────────
 MenuToggles g_toggles    = {0};     // all features start OFF
@@ -95,19 +96,28 @@ static void register_all_hooks(void) {
     g_hooksReady = true;
 }
 
-// ─── Deferred hook installer ────────────────────────────────────────────────
-// Runs 1 second after launch on main thread – safe even if Unity isn't ready.
-static void deferred_init(void) {
-    register_all_hooks();
-    [[FloatingOverlay sharedInstance] show];
+// ─── Retry hook installer ───────────────────────────────────────────────────
+// Retries register_all_hooks every 2s until UnityFramework is loaded.
+// This prevents crashes from get_unity_base() returning the wrong base.
+static void retry_hooks(void) {
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        for (int i = 0; i < 15; i++) {
+            if (get_unity_base() != 0) {
+                register_all_hooks();
+                // Show UI on main thread
+                [[FloatingOverlay sharedInstance] performSelectorOnMainThread:@selector(show)
+                                                                  withObject:nil
+                                                               waitUntilDone:NO];
+                return;
+            }
+            struct timespec ts = {2, 0};
+            nanosleep(&ts, NULL);
+        }
+    });
 }
 
 // ─── Constructor – runs when dylib is loaded ────────────────────────────────
 __attribute__((constructor))
 static void initialize() {
-    // Hooks modify writable __DATA.__data pointers (no code pages), safe to run
-    // at any time. UI attaches to main run loop via dispatch_async.
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        deferred_init();
-    });
+    retry_hooks();
 }

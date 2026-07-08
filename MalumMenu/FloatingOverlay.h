@@ -47,6 +47,7 @@ enum {
 @interface NSObject
 + (instancetype)alloc;
 - (instancetype)init;
+- (void)performSelectorOnMainThread:(SEL)sel withObject:(id)obj waitUntilDone:(BOOL)wait;
 @end
 
 @interface NSString : NSObject

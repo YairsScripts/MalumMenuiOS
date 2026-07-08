@@ -26,9 +26,7 @@ static inline uintptr_t get_unity_base(void) {
             return base;
         }
     }
-    // fallback – use main executable
-    base = (uintptr_t)_dyld_get_image_header(0);
-    return base;
+    return 0;  // not loaded yet – safe, caller handles 0
 }
 
 static inline uintptr_t real(uintptr_t offset) {
