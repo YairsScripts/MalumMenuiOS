@@ -1,0 +1,38 @@
+# ============================================================================
+# Makefile.mac – Build with Theos on macOS
+# Usage:  make -f Makefile.mac
+# ============================================================================
+
+include $(THEOS)/makefiles/common.mk
+
+TWEAK_NAME = MalumMenu
+MalumMenu_FILES = TweakEntry.mm Hooks.mm FloatingOverlay.mm
+MalumMenu_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
+MalumMenu_LDFLAGS = -lsubstrate -lobjc -lc++
+ARCHS = arm64
+TARGET = iphone:14.0:13.0
+
+include $(THEOS_MAKE_PATH)/tweak.mk
+
+# ── Quick sideload ──────────────────────────────────────────────────────────
+sideload:
+	@echo "=== Sideload injection ==="
+	@echo "1. Build IPA with:  make package"
+	@echo "2. Or inject .dylib manually into Payload/AmongUs.app/"
+	@echo "3. Re-sign and install via Sideloadly"
+
+# ── Zig cross-compile (no Theos needed) ──────────────────────────────────────
+zig:
+	zig build-lib \
+		--name MalumMenu \
+		TweakEntry.mm Hooks.mm FloatingOverlay.mm \
+		-target aarch64-ios-none \
+		-O ReleaseSmall \
+		-fobjc-arc \
+		-I. \
+		-lc -lobjc \
+		-framework UIKit \
+		-framework Foundation \
+		-framework CoreGraphics \
+		-framework QuartzCore
+	@echo "Created MalumMenu.dylib"

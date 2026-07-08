@@ -1,0 +1,9 @@
+Package: com.ios.malummenu
+Name: MalumMenu
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Among Us mod menu – floating touch overlay for iOS
+Maintainer: MalumMenu
+Author: MalumMenu
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000)

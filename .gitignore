@@ -1,0 +1,26 @@
+# Build outputs
+*.ipa
+*.dylib
+build/
+Payload/
+
+# Temp / cache
+__pycache__/
+.zig-cache/
+zgc-*/
+.tmp_*
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Large reference files (not needed for compilation)
+MalumMenu/offsets/
+MalumMenu/frameworks/
+
+# OS
+.DS_Store
+Thumbs.db
