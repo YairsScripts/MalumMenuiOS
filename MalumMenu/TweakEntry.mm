@@ -7,7 +7,8 @@
 #import "MalumMenu.h"
 #import "FloatingOverlay.h"
 #include <dispatch/dispatch.h>
-#include <time.h>
+
+extern unsigned int sleep(unsigned int);
 
 // ─── Global state definitions ───────────────────────────────────────────────
 MenuToggles g_toggles    = {0};     // all features start OFF
@@ -110,8 +111,7 @@ static void retry_hooks(void) {
                                                                waitUntilDone:NO];
                 return;
             }
-            struct timespec ts = {2, 0};
-            nanosleep(&ts, NULL);
+            sleep(2);
         }
     });
 }
