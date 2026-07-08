@@ -8,7 +8,7 @@
 #import "FloatingOverlay.h"
 #include <dispatch/dispatch.h>
 
-extern unsigned int sleep(unsigned int);
+extern "C" unsigned int sleep(unsigned int);
 
 // ─── Global state definitions ───────────────────────────────────────────────
 MenuToggles g_toggles    = {0};     // all features start OFF
