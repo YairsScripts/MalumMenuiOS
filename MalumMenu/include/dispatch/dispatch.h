@@ -11,6 +11,7 @@ extern "C" {
 void dispatch_async(dispatch_queue_t queue, dispatch_block_t block);
 void dispatch_once(dispatch_once_t *predicate, dispatch_block_t block);
 dispatch_queue_t dispatch_get_main_queue(void);
+dispatch_queue_t dispatch_get_global_queue(long identifier, unsigned long flags);
 #endif
 #ifdef __cplusplus
 }

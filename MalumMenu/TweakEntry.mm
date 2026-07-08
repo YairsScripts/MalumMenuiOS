@@ -107,7 +107,7 @@ __attribute__((constructor))
 static void initialize() {
     // Hooks modify writable __DATA.__data pointers (no code pages), safe to run
     // at any time. UI attaches to main run loop via dispatch_async.
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
         deferred_init();
     });
 }
