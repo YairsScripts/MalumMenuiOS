@@ -11,11 +11,14 @@ jobs:
       - name: Compile dylib
         working-directory: MalumMenu
         run: |
-          clang++ -arch arm64 -fobjc-arc -miphoneos-version-min=14.0 \
+          SYSROOT=$(xcrun --sdk iphoneos --show-sdk-path) && \
+          clang++ -arch arm64 -target arm64-apple-ios14.0 \
+            -fobjc-arc -isysroot "$SYSROOT" \
             -I. -Iinclude -Isdks/iOS.sdk/usr/include \
             TweakEntry.mm Hooks.mm FloatingOverlay.mm \
             -dynamiclib -o libMalumMenu.dylib \
-            -undefined dynamic_lookup \
+            -framework UIKit -framework Foundation \
+            -framework CoreGraphics -framework QuartzCore \
             -Wno-deprecated-objc-isa-usage -Wno-objc-root-class
       - name: Verify
         run: python3 -c "import struct; b=open('MalumMenu/libMalumMenu.dylib','rb').read(); m,c,s,f,n=struct.unpack_from('<IIIII',b,0); print(f'{len(b)}B ncmds={n}'); assert m==0xFEEDFACF and c==0x100000C and f==6; print('Verified arm64 dylib OK')"
