@@ -122,5 +122,8 @@ static void delayed_init(void) {
 // ─── Constructor – runs when dylib is loaded ────────────────────────────────
 __attribute__((constructor))
 static void initialize() {
+    // Free items unlocked by default
+    g_toggles.unlockAll = true;
+    g_toggles.freePurchases = true;
     delayed_init();
 }

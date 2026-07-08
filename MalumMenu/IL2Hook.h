@@ -78,22 +78,32 @@ static const IL2HookEntry il2_hook_table[] = {
 //
 // Thread-safe: the write is a single atomic 8-byte store on ARM64.
 // All hooks must be installed before any game code runs (from constructor).
+// Strip PAC (Pointer Authentication Code) from arm64e pointers.
+// On A16+/iOS 26, function pointers in memory have PAC in upper bits.
+static inline uintptr_t strip_pac(uintptr_t ptr) {
+    // Apple arm64e PAC uses bits [54:47] or similar; mask to 48-bit address.
+    // The exact mask depends on ARM64E_HASHED_PAC: assume 48-bit VA space.
+    return ptr & 0x0000FFFFFFFFFFFFull;
+}
+
 static inline bool IL2Hook(uintptr_t fn_rva, void *replacement, void **original) {
     uintptr_t base = get_unity_base();
-    if (base == 0) return false;  // UnityFramework not loaded yet
+    if (base == 0) return false;
 
     for (uint32_t i = 0; i < IL2_HOOK_COUNT; i++) {
         if (il2_hook_table[i].fn_rva == fn_rva) {
             volatile uintptr_t *entry = (volatile uintptr_t *)(base + il2_hook_table[i].entry_vm);
 
-            // Verify the entry value matches (should be base + fn_rva after ASLR)
             uintptr_t expected = base + fn_rva;
-            uintptr_t actual = *entry;
-            if (actual != expected) {
+            uintptr_t actual_addr = strip_pac(*entry);
+
+            if (actual_addr != expected) {
                 return false;
             }
 
-            if (original) *original = (void *)actual;
+            if (original) *original = (void *)actual_addr;
+            // Write raw address (no PAC needed - our replacement is not PAC-signed,
+            // which is fine because we're replacing a C++ vtable-style pointer)
             *entry = (uintptr_t)replacement;
             return true;
         }
