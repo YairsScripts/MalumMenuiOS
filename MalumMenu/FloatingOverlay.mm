@@ -46,6 +46,11 @@ static FloatingOverlay *s_shared = nil;
     return s_shared;
 }
 
+// ─── Present (class method, safe for performSelectorOnMainThread) ────────────
++ (void)present {
+    [[self sharedInstance] show];
+}
+
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {

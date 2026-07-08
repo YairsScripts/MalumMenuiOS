@@ -97,22 +97,25 @@ static void register_all_hooks(void) {
     g_hooksReady = true;
 }
 
-// ─── Retry hook installer ───────────────────────────────────────────────────
-// Retries register_all_hooks every 2s until UnityFramework is loaded.
-// This prevents crashes from get_unity_base() returning the wrong base.
-static void retry_hooks(void) {
+// ─── Delayed init ──────────────────────────────────────────────────────────
+// Waits for UnityFramework to load PLUS an extra 10s for Unity to finish
+// initializing (splash, rendering setup, etc.) before installing hooks or UI.
+static void delayed_init(void) {
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        for (int i = 0; i < 15; i++) {
-            if (get_unity_base() != 0) {
-                register_all_hooks();
-                // Show UI on main thread
-                [[FloatingOverlay sharedInstance] performSelectorOnMainThread:@selector(show)
-                                                                  withObject:nil
-                                                               waitUntilDone:NO];
-                return;
-            }
+        // Wait up to 60s for UnityFramework to appear
+        for (int i = 0; i < 30; i++) {
+            if (get_unity_base() != 0) break;
             sleep(2);
         }
+        if (get_unity_base() == 0) return;  // never loaded, give up
+        // Extra 10s for Unity to finish its init
+        sleep(10);
+        // Install hooks on background thread (safe: IL2CPP table writes)
+        register_all_hooks();
+        // Show UI on main thread (creates UIKit objects safely)
+        [FloatingOverlay performSelectorOnMainThread:@selector(present)
+                                         withObject:nil
+                                      waitUntilDone:NO];
     });
 }
 

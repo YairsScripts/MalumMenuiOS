@@ -163,6 +163,7 @@ enum {
 
 @interface FloatingOverlay : UIWindow
 + (instancetype)sharedInstance;
++ (void)present;  // creates & shows on whatever thread called
 - (void)show;
 - (void)toggleMenu;
 - (void)syncUI;
