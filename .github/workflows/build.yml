@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile dylib
+        working-directory: MalumMenu
         run: |
           clang++ -arch arm64 -fobjc-arc -miphoneos-version-min=14.0 \
             -I. -Iinclude -Isdks/iOS.sdk/usr/include \
@@ -17,9 +18,9 @@ jobs:
             -undefined dynamic_lookup \
             -Wno-deprecated-objc-isa-usage -Wno-objc-root-class
       - name: Verify
-        run: python3 -c "import struct; b=open('libMalumMenu.dylib','rb').read(); m,c,s,f,n=struct.unpack_from('<IIIII',b,0); print(f'{len(b)}B ncmds={n}'); assert m==0xFEEDFACF and c==0x100000C and f==6; print('Verified arm64 dylib OK')"
+        run: python3 -c "import struct; b=open('MalumMenu/libMalumMenu.dylib','rb').read(); m,c,s,f,n=struct.unpack_from('<IIIII',b,0); print(f'{len(b)}B ncmds={n}'); assert m==0xFEEDFACF and c==0x100000C and f==6; print('Verified arm64 dylib OK')"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: libMalumMenu.dylib
-          path: libMalumMenu.dylib
+          path: MalumMenu/libMalumMenu.dylib
