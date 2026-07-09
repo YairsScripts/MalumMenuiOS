@@ -63,6 +63,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v1.1.0"
-          if gh release view "$TAG" --json tagName --jq .tagName &>/dev/null; then
+          if gh release view "$TAG" --json tagName --jq .tagName 2>/dev/null; then
+            echo "Uploading MalumMenu.dylib to $TAG..."
+            ls -la MalumMenu.dylib
             gh release upload "$TAG" MalumMenu.dylib --clobber
+            echo "Upload complete."
+          else
+            echo "Release $TAG not found, skipping upload."
           fi
