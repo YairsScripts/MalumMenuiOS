@@ -163,9 +163,9 @@ static void delayed_init(void) {
         if (get_unity_base() == 0) return;
         sleep(10);
         register_all_hooks();
-        [FloatingOverlay performSelectorOnMainThread:@selector(present)
-                                         withObject:nil
-                                      waitUntilDone:NO];
+        [(id)FloatingOverlay performSelectorOnMainThread:@selector(present)
+                                           withObject:nil
+                                        waitUntilDone:NO];
     });
 }
 

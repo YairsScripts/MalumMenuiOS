@@ -1,7 +1,15 @@
 #pragma once
-#include <objc/runtime.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+// When building with Xcode iOS SDK (macOS), use Apple's real headers.
+// When cross-compiling with Zig (Windows/Linux), provide minimal forward declarations.
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#import <UIKit/UIKit.h>
+#import <objc/runtime.h>
+#import <dispatch/dispatch.h>
+#else
+#include <objc/runtime.h>
 #include <dispatch/dispatch.h>
 
 #ifndef MIN
@@ -44,9 +52,6 @@ enum {
     UIControlEventValueChanged = 1UL<<12
 };
 
-// Forward declarations for environments without iOS SDK (Zig cross-compile).
-// When building with Xcode iOS SDK, these are provided by Apple's headers.
-#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
 @interface NSObject
 + (instancetype)alloc;
 - (instancetype)init;
