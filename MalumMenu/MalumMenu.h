@@ -298,9 +298,3 @@ static inline uintptr_t get_unity_base(void) {
     }
     return 0;
 }
-
-static inline uintptr_t get_real_offset(uintptr_t offset) {
-    uintptr_t base = get_unity_base();
-    if (base == 0) return 0;
-    return base + offset;
-}

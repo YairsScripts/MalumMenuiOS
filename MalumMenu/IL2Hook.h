@@ -94,9 +94,7 @@ static inline bool hook_via_entry_table(uintptr_t fn_rva, void *replacement,
         if (il2_hook_table[i].fn_rva == fn_rva) {
             uintptr_t entry_addr = base + il2_hook_table[i].entry_vm;
 
-            // On A16+, __DATA_CONST pages are enforced by hardware APRR.
-            // vm_protect(VM_PROT_COPY) returns KERN_SUCCESS but writes still
-            // fault.  Only write if the page is already natively writable.
+            // Safety: only write if the page is already writable
             if (!page_is_writable(entry_addr)) return false;
 
             volatile uintptr_t *entry = (volatile uintptr_t *)entry_addr;
@@ -163,10 +161,14 @@ static inline bool hook_via_protect(uintptr_t target, void *replacement,
 #define TRY_HOOK(offset, replace, origPtr) \
     do { \
         if ((offset) != 0x0) { \
-            if (!hook_via_protect(get_real_offset(offset), \
+            if (!hook_via_protect((uintptr_t)(get_unity_base() + (offset)), \
                                   (void *)(replace), (void **)(origPtr))) { \
                 hook_via_entry_table((offset), (void *)(replace), \
                                      (void **)(origPtr)); \
             } \
         } \
     } while (0)
+
+#define HOOK_FUNC(offset, replace, origPtr) \
+    hook_via_protect((uintptr_t)(get_unity_base() + (offset)), \
+                     (void *)(replace), (void **)(origPtr))
