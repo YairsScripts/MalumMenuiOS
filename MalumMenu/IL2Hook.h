@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <mach/mach.h>
+#include <libkern/OSCacheControl.h>
 
 // ── Old method-pointer-table approach removed ──
 // The method pointer table at RVA 0x52A11B0 does NOT contain our target
@@ -62,7 +63,8 @@ static inline bool HookFunction(uintptr_t fn_rva, void *replacement,
 
         vm_protect(mach_task_self(), tramp, 0x100, FALSE,
                    VM_PROT_READ | VM_PROT_EXECUTE);
-        __builtin___clear_cache((char *)tramp, (char *)(tramp + 32));
+        sys_dcache_flush((void *)tramp, 32);
+        sys_icache_invalidate((void *)tramp, 32);
 
         *original = (void *)tramp;
     }
@@ -72,7 +74,8 @@ static inline bool HookFunction(uintptr_t fn_rva, void *replacement,
     ((volatile uint32_t *)target)[1] = 0xD61F0220;  // br x17
     *(volatile uintptr_t *)(target + 8) = (uintptr_t)replacement;
 
-    __builtin___clear_cache((char *)target, (char *)(target + 16));
+    sys_dcache_flush((void *)target, 16);
+    sys_icache_invalidate((void *)target, 16);
 
     // ── Restore protection to RX ──
     vm_protect(mach_task_self(), page, 0x4000, FALSE,
