@@ -70,32 +70,31 @@ static const IL2HookEntry il2_hook_table[] = {
 
 // Check if a memory page has write permission.
 static inline bool page_is_writable(uintptr_t addr) {
-    mach_vm_address_t region_addr = addr;
-    mach_vm_size_t region_size = 0;
+    vm_address_t region_addr = addr;
+    vm_size_t region_size = 0;
     struct vm_region_submap_info_64 info;
     mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
     natural_t depth = 0;
-    kern_return_t kr = mach_vm_region(mach_task_self(), &region_addr, &region_size,
-                                      0, (vm_region_info_t)&info, &count, &depth);
+    kern_return_t kr = vm_region_64(mach_task_self(), &region_addr, &region_size,
+                                    VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info,
+                                    &count, &depth);
     return kr == KERN_SUCCESS && (info.protection & VM_PROT_WRITE) != 0;
 }
 
-// Install hook by writing replacement pointer into the __DATA_CONST entry table.
-// This is the fallback when vm_protect code-patching fails (e.g., jailed A16).
+// Install hook by writing replacement pointer into the __DATA dispatch table.
+// Fallback when vm_protect code-patching fails (e.g., jailed A16).
 // NOTE: The table stores RVAs (not absolute pointers), so *original
 // must be base+fn_rva, NOT the table value.
-static inline bool IL2HookEntry(uintptr_t fn_rva, void *replacement,
-                                void **original) {
+static inline bool hook_via_entry_table(uintptr_t fn_rva, void *replacement,
+                                        void **original) {
     uintptr_t base = get_unity_base();
     if (base == 0) return false;
 
     for (uint32_t i = 0; i < IL2_HOOK_COUNT; i++) {
         if (il2_hook_table[i].fn_rva == fn_rva) {
             uintptr_t entry_addr = base + il2_hook_table[i].entry_vm;
-            vm_address_t page = entry_addr & ~(vm_address_t)0x3FFF;
 
             // Safety: only write if the page is already writable
-            // (__DATA_CONST is read-only on A16, but __DATA is writable)
             if (!page_is_writable(entry_addr)) return false;
 
             volatile uintptr_t *entry = (volatile uintptr_t *)entry_addr;
@@ -108,47 +107,9 @@ static inline bool IL2HookEntry(uintptr_t fn_rva, void *replacement,
     return false;
 }
 
-// Try to replace an __TEXT page with a writable+executable copy via
-// mach_vm_remap, bypassing code-signing page-protection enforcement.
-static bool remap_code_page(uintptr_t target) {
-    mach_vm_address_t page = target & ~(mach_vm_address_t)0x3FFF;
-    mach_vm_address_t new_page = 0;
-
-    kern_return_t kr = mach_vm_allocate(mach_task_self(), &new_page, 0x4000,
-                                        VM_FLAGS_ANYWHERE);
-    if (kr != KERN_SUCCESS) return false;
-
-    memcpy((void *)(uintptr_t)new_page, (void *)(uintptr_t)page, 0x4000);
-
-    vm_protect(mach_task_self(), new_page, 0x4000, FALSE,
-               VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
-    sys_dcache_flush((void *)(uintptr_t)new_page, 0x4000);
-    sys_icache_invalidate((void *)(uintptr_t)new_page, 0x4000);
-
-    vm_prot_t cur_prot, max_prot;
-    kr = mach_vm_remap(mach_task_self(), &page, 0x4000, 0, VM_FLAGS_OVERWRITE,
-                       mach_task_self(), new_page, FALSE,
-                       &cur_prot, &max_prot, VM_INHERIT_COPY);
-    if (kr != KERN_SUCCESS) {
-        mach_vm_deallocate(mach_task_self(), new_page, 0x4000);
-        return false;
-    }
-
-    mach_vm_deallocate(mach_task_self(), new_page, 0x4000);
-    return true;
-}
-
-// ARM64 function-code patching: redirects first 16 bytes to replacement.
-// Tries three strategies in order:
-//   1. vm_protect(VM_PROT_COPY) on the code page  (fails on jailed A16)
-//   2. mach_vm_remap the page → writable+executable copy  (may work)
-//   3. Falls through to IL2HookEntry (entry-table write) if both fail
-static inline bool HookFunction(uintptr_t fn_rva, void *replacement,
-                                void **original) {
-    uintptr_t base = get_unity_base();
-    if (base == 0) return false;
-
-    uintptr_t target = base + fn_rva;
+// ARM64 function-code patching via vm_protect.
+static inline bool hook_via_protect(uintptr_t target, void *replacement,
+                                    void **original) {
     vm_address_t page = target & ~(vm_address_t)0x3FFF;
 
     kern_return_t kr = vm_protect(mach_task_self(), page, 0x4000, FALSE,
@@ -156,11 +117,7 @@ static inline bool HookFunction(uintptr_t fn_rva, void *replacement,
     if (kr != KERN_SUCCESS) {
         kr = vm_protect(mach_task_self(), page, 0x4000, FALSE,
                         VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
-    }
-
-    // If vm_protect fails, try mach_vm_remap to replace the page
-    if (kr != KERN_SUCCESS) {
-        if (!remap_code_page(target)) return false;
+        if (kr != KERN_SUCCESS) return false;
     }
 
     uint32_t saved[4];
@@ -200,15 +157,18 @@ static inline bool HookFunction(uintptr_t fn_rva, void *replacement,
     return true;
 }
 
-// Try code-patching first; if vm_protect fails, fall back to entry-table hook
+// Try code-patching first; fall back to entry-table hook
 #define TRY_HOOK(offset, replace, origPtr) \
     do { \
         if ((offset) != 0x0) { \
-            if (!HookFunction((offset), (void *)(replace), (void **)(origPtr))) { \
-                IL2HookEntry((offset), (void *)(replace), (void **)(origPtr)); \
+            if (!hook_via_protect((uintptr_t)(get_unity_base() + (offset)), \
+                                  (void *)(replace), (void **)(origPtr))) { \
+                hook_via_entry_table((offset), (void *)(replace), \
+                                     (void **)(origPtr)); \
             } \
         } \
     } while (0)
 
 #define HOOK_FUNC(offset, replace, origPtr) \
-    HookFunction((offset), (void *)(replace), (void **)(origPtr))
+    hook_via_protect((uintptr_t)(get_unity_base() + (offset)), \
+                     (void *)(replace), (void **)(origPtr))
