@@ -386,13 +386,6 @@ static void hook_SceneManagerInternalSceneLoaded_repl(void *__this, void *scene,
 //  HOOK REGISTRATORS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#define TRY_HOOK(offset, replace, origPtr) \
-    do { \
-        if ((offset) != 0x0) { \
-            HookFunction((offset), (void *)(replace), (void **)(origPtr)); \
-        } \
-    } while (0)
-
 // Core Updates
 void hook_FixedUpdate(void)                    { TRY_HOOK(O_FixedUpdate, hook_FixedUpdate_repl, &orig_FixedUpdate); }
 void hook_SetKillTimer(void)                   { TRY_HOOK(O_SetKillTimer, hook_SetKillTimer_repl, &orig_SetKillTimer); }
