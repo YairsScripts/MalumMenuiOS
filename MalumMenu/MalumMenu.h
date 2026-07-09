@@ -293,7 +293,7 @@ static inline uintptr_t get_unity_base(void) {
     for (uint32_t i = 0; i < count; i++) {
         const char *name = _dyld_get_image_name(i);
         if (name && strstr(name, "UnityFramework")) {
-            return (uintptr_t)_dyld_get_image_vmaddr(i);
+            return (uintptr_t)_dyld_get_image_header(i);
         }
     }
     return 0;
