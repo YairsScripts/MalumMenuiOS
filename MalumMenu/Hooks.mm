@@ -389,7 +389,7 @@ static void hook_SceneManagerInternalSceneLoaded_repl(void *__this, void *scene,
 #define TRY_HOOK(offset, replace, origPtr) \
     do { \
         if ((offset) != 0x0) { \
-            IL2Hook((offset), (void *)(replace), (void **)(origPtr)); \
+            HookFunction((offset), (void *)(replace), (void **)(origPtr)); \
         } \
     } while (0)
 
