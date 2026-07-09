@@ -77,8 +77,8 @@ static inline uintptr_t strip_pac(uintptr_t ptr) {
     return ptr & 0x0000FFFFFFFFFFFFull;
 }
 
-// Rough size of UnityFramework binary (sanity bound)
-#define UNITY_BINARY_MAX_SIZE 0x600000
+// Rough size of UnityFramework binary (sanity bound, ~95MB)
+#define UNITY_BINARY_MAX_SIZE 0x6000000
 
 // Install hook: write replacement at the method pointer table entry.
 // fn_rva must match an entry in il2_hook_table.

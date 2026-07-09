@@ -283,6 +283,18 @@ extern "C" void hook_SceneManagerInternalSceneLoaded(void);
 //  UTILITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#include <string.h>
+
+// Find UnityFramework's base address (mach_header pointer) in the loaded image list.
+// Previously used _dyld_get_image_vmaddr_slide(0) which is the MAIN EXECUTABLE's
+// ASLR slide, NOT UnityFramework's base — all hooks wrote to wrong addresses.
 static inline uintptr_t get_unity_base(void) {
-    return (uintptr_t)_dyld_get_image_vmaddr_slide(0);
+    uint32_t count = _dyld_image_count();
+    for (uint32_t i = 0; i < count; i++) {
+        const char *name = _dyld_get_image_name(i);
+        if (name && strstr(name, "UnityFramework")) {
+            return (uintptr_t)_dyld_get_image_vmaddr(i);
+        }
+    }
+    return 0;
 }
