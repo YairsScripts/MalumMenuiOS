@@ -4,9 +4,11 @@
 
 extern "C" unsigned int sleep(unsigned int);
 
-MenuToggles g_toggles    = {0};
-bool         g_showMenu  = false;
+MenuToggles g_toggles     = {0};
+bool         g_showMenu   = false;
 bool         g_hooksReady = false;
+int          g_hookSuccess = 0;
+int          g_hookFailed  = 0;
 
 // ── Core Updates ──
 uintptr_t O_FixedUpdate                     = 0x1C449E4;
@@ -148,6 +150,9 @@ static void register_all_hooks(void) {
     hook_SceneManagerInternalSceneLoaded();
 
     g_hooksReady = true;
+
+    NSLog(@"[MalumMenu] Hooks installed: %d succeeded, %d failed (out of %llu)",
+          g_hookSuccess, g_hookFailed, (unsigned long long)(g_hookSuccess + g_hookFailed));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

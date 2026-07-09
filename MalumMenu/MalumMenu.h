@@ -207,6 +207,8 @@ typedef struct {
 extern MenuToggles g_toggles;
 extern bool g_showMenu;
 extern bool g_hooksReady;
+extern int g_hookSuccess;
+extern int g_hookFailed;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  HOOK DECLARATIONS – implementations in Hooks.mm
@@ -297,4 +299,10 @@ static inline uintptr_t get_unity_base(void) {
         }
     }
     return 0;
+}
+
+static inline uintptr_t get_real_offset(uintptr_t offset) {
+    uintptr_t base = get_unity_base();
+    if (base == 0) return 0;
+    return base + offset;
 }
