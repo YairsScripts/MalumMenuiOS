@@ -1,129 +1,183 @@
-// ============================================================================
-// TweakEntry.mm – .dylib constructor called when the library is injected.
-// 1. Set your dump.cs offsets in a separate offsets.c file (linked at build).
-// 2. Recompile and inject via Sideloadly.
-// ============================================================================
-
 #import "MalumMenu.h"
 #import "FloatingOverlay.h"
 #include <dispatch/dispatch.h>
 
 extern "C" unsigned int sleep(unsigned int);
 
-// ─── Global state definitions ───────────────────────────────────────────────
-MenuToggles g_toggles    = {0};     // all features start OFF
+MenuToggles g_toggles    = {0};
 bool         g_showMenu  = false;
 bool         g_hooksReady = false;
 
-// ─── Offset definitions – extracted from decrypted iOS IPA dump.cs
-// All values are RVAs within UnityFramework (see ASLR helper).
-// Verified against Among Us iOS v2024.6.18 (Metadata v31)
-// ============================================================================
+// ── Core Updates ──
+uintptr_t O_FixedUpdate                     = 0x1C449E4;
+uintptr_t O_SetKillTimer                    = 0x1C439E4;
+uintptr_t O_MurderPlayer                    = 0x1C4C5C4;
+uintptr_t O_RpcCompleteTask                 = 0x1C518F4;
+uintptr_t O_RpcSetRole                      = 0x1C519C4;
+uintptr_t O_RpcSyncSettings                 = 0x1C52D5C;
+uintptr_t O_PlayerPhysicsFixedUpdate        = 0x1C59F34;
+uintptr_t O_PlayerPhysicsLateUpdate         = 0x1C5A74C;
+uintptr_t O_PlayerPhysicsHandleAnimation    = 0x1C5A1C4;
+uintptr_t O_PlayerPhysicsCoEnterVent        = 0x1C5B13C;
+uintptr_t O_PlayerPhysicsCoExitVent         = 0x1C5B1C4;
+uintptr_t O_ShipStatusFixedUpdate           = 0x1CCAEA8;
+uintptr_t O_ShipStatusCalculateLightRadius  = 0x1CCB1C8;
+uintptr_t O_ShipStatusUpdateSystem          = 0x1CC9E54;
+uintptr_t O_HudManagerUpdate                = 0x1B74334;
+uintptr_t O_AmongUsClientUpdate             = 0x1BBBE60;
+uintptr_t O_AmongUsClientOnGameJoined       = 0x1BBDBBC;
+uintptr_t O_AmongUsClientStartGame          = 0x1BBBE38;
 
-// Game & Player Logic (PlayerControl)
-uintptr_t O_FixedUpdate           = 0x1C449E4;   // PlayerControl.FixedUpdate()
-uintptr_t O_SetKillTimer           = 0x1C439E4;   // PlayerControl.SetKillTimer(float)
-uintptr_t O_MurderPlayer           = 0x1C4C5C4;   // PlayerControl.MurderPlayer(PlayerControl, MurderResultFlags)
-uintptr_t O_RpcCompleteTask        = 0x1C518F4;   // PlayerControl.RpcCompleteTask(uint idx)
-uintptr_t O_get_IsImposter         = 0x1C8E154;   // RoleBehaviour.get_IsImpostor()  (not PlayerControl)
-uintptr_t O_IsImposter             = 0x1C97584;   // RoleManager.IsImpostorRole(RoleTypes) static
-uintptr_t O_get_Data               = 0x1C42BBC;   // PlayerControl.get_Data() → NetworkedPlayerInfo
-uintptr_t O_CanMove                = 0x1C43320;   // PlayerControl.get_CanMove()
-uintptr_t O_Die                    = 0x1C47524;   // PlayerControl.Die(DeathReason, bool assignGhostRole)
-uintptr_t O_Revive                 = 0x1C47D90;   // PlayerControl.Revive()
+// ── Meetings ──
+uintptr_t O_MeetingHudUpdate                = 0x1B86170;
+uintptr_t O_MeetingHudVotingComplete        = 0x1B87384;
+uintptr_t O_MeetingHudClose                 = 0x1B87238;
+uintptr_t O_MeetingHudCastVote              = 0x1B88C58;
+uintptr_t O_MeetingHudServerStart           = 0x1B75450;
+uintptr_t O_MeetingHudDeserialize           = 0x1B89F3C;
 
-// Roles & Modifiers
-uintptr_t O_SetRole                = 0x1C95AA8;   // RoleManager.SetRole(PlayerControl, RoleTypes)
-uintptr_t O_get_Role               = 0x0;         // Role is a field (RoleBehaviour*, offset 0x68 in NetworkedPlayerInfo)
-uintptr_t O_IsRole                 = 0x0;         // Not found – use RoleType field (offset 0x50) or RoleManager.IsImpostorRole
-uintptr_t O_CanReport              = 0x1B2E880;   // GameManager.CanReportBodies() virtual
-uintptr_t O_CanVent                = 0x0;         // CanVent is a bool field at 0x63 in RoleBehaviour
+// ── Game logic ──
+uintptr_t O_GameManagerCanReportBodies      = 0x1B2E880;
+uintptr_t O_GameManagerRpcEndGame           = 0x1B2DD48;
+uintptr_t O_GameStartManagerUpdate          = 0x1B3C564;
+uintptr_t O_GameDataGetPlayerById           = 0x1EC5A30;
 
-// Cosmetics & Unlocks
-uintptr_t O_get_HasUnlocked        = 0x1E62754;   // HatManager.GetUnlockedPets()  → returns all if empty
-uintptr_t O_GetPurchaseStatus      = 0x0;         // Use InventoryManager / HatManager.GetUnlocked*
-uintptr_t O_get_GoldHats           = 0x1E62990;   // HatManager.GetUnlockedHats()
-uintptr_t O_get_Skins              = 0x1E61D54;   // HatManager.get_AllSkins()
-uintptr_t O_get_Pets               = 0x1E61D6C;   // HatManager.get_AllPets()
+// ── Chat ──
+uintptr_t O_ChatControllerSendChat           = 0x1B55BFC;
 
-// Vision, Chat & Host
-uintptr_t O_CalculateLightRadius   = 0x1CCB1C8;   // ShipStatus.CalculateLightRadius(NetworkedPlayerInfo) virtual
-uintptr_t O_get_Vision             = 0x0;         // Not found – modify ShipStatus.MaxLightRadius field (offset 0x48)
-uintptr_t O_HudUpdate              = 0x1B74334;   // HudManager.Update()
-uintptr_t O_SendChat               = 0x1B55BFC;   // ChatController.SendChat()
-uintptr_t O_get_AmHost             = 0x1DABFA8;   // InnerNetClient.get_AmHost()
-uintptr_t O_RpcStartGame           = 0x1BBBE38;   // AmongUsClient.StartGame()
-uintptr_t O_EndGame                = 0x1B2DD48;   // GameManager.RpcEndGame(GameOverReason, bool)
-uintptr_t O_SyncSettings           = 0x1C52D5C;   // PlayerControl.RpcSyncSettings(byte[])
+// ── Roles ──
+uintptr_t O_RoleBehaviourGetIsImpostor               = 0x1C8E154;
+uintptr_t O_RoleManagerIsImpostorRole                = 0x1C97584;
+uintptr_t O_RoleManagerSetRole                       = 0x1C95AA8;
 
-// ─── Hook registration table ────────────────────────────────────────────────
+// ── Player ──
+uintptr_t O_PlayerControlGetData              = 0x1C42BBC;
+uintptr_t O_PlayerControlCanMove              = 0x1C43320;
+uintptr_t O_PlayerControlDie                  = 0x1C47524;
+uintptr_t O_PlayerControlRevive               = 0x1C47D90;
+
+// ── Cosmetics ──
+uintptr_t O_HatManagerGetUnlockedPets         = 0x1E62754;
+uintptr_t O_HatManagerGetUnlockedHats         = 0x1E62990;
+uintptr_t O_HatManagerAllSkins               = 0x1E61D54;
+uintptr_t O_HatManagerAllPets                = 0x1E61D6C;
+uintptr_t O_CustomizationDataSetName          = 0x1E1BBE0;
+uintptr_t O_CustomizationDataSetHat           = 0x1E1BD84;
+uintptr_t O_CustomizationDataSetVisor         = 0x1E1BE9C;
+uintptr_t O_CustomizationDataSetSkin          = 0x1E1BE10;
+uintptr_t O_CustomizationDataSetPet           = 0x1E1BCF8;
+uintptr_t O_CustomizationDataSetNamePlate     = 0x1E1BF28;
+
+// ── Host / Misc ──
+uintptr_t O_InnerNetClientAmHost                     = 0x1DABFA8;
+uintptr_t O_BanMenuSetVisible                        = 0x1B4DA3C;
+uintptr_t O_AccountManagerCanPlayOnline              = 0x1AFD2A8;
+uintptr_t O_PingTrackerUpdate                        = 0x1C16E14;
+uintptr_t O_SceneManagerInternalSceneLoaded          = 0x44A6874;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HOOK REGISTRATION – called once from delayed_init()
+// ═══════════════════════════════════════════════════════════════════════════════
+
 static void register_all_hooks(void) {
-    // Player Logic
+    // Core Updates
     hook_FixedUpdate();
     hook_SetKillTimer();
     hook_MurderPlayer();
     hook_RpcCompleteTask();
-    hook_get_IsImposter();
-    hook_IsImposter();
-    hook_get_Data();
-    hook_CanMove();
-    hook_Die();
-    hook_Revive();
+    hook_RpcSetRole();
+    hook_RpcSyncSettings();
+    hook_PlayerPhysicsFixedUpdate();
+    hook_PlayerPhysicsLateUpdate();
+    hook_PlayerPhysicsHandleAnimation();
+    hook_PlayerPhysicsCoEnterVent();
+    hook_PlayerPhysicsCoExitVent();
+    hook_ShipStatusFixedUpdate();
+    hook_ShipStatusCalculateLightRadius();
+    hook_ShipStatusUpdateSystem();
+    hook_HudManagerUpdate();
+    hook_AmongUsClientUpdate();
+    hook_AmongUsClientOnGameJoined();
+    hook_AmongUsClientStartGame();
+
+    // Meetings
+    hook_MeetingHudUpdate();
+    hook_MeetingHudVotingComplete();
+    hook_MeetingHudClose();
+    hook_MeetingHudCastVote();
+    hook_MeetingHudServerStart();
+    hook_MeetingHudDeserialize();
+
+    // Game logic
+    hook_GameManagerCanReportBodies();
+    hook_GameManagerRpcEndGame();
+    hook_GameStartManagerUpdate();
+    hook_GameDataGetPlayerById();
+
+    // Chat
+    hook_ChatControllerSendChat();
 
     // Roles
-    hook_SetRole();
-    hook_get_Role();
-    hook_IsRole();
-    hook_CanReport();
-    hook_CanVent();
+    hook_RoleBehaviourGetIsImpostor();
+    hook_RoleManagerIsImpostorRole();
+    hook_RoleManagerSetRole();
+
+    // Player
+    hook_PlayerControlGetData();
+    hook_PlayerControlCanMove();
+    hook_PlayerControlDie();
+    hook_PlayerControlRevive();
 
     // Cosmetics
-    hook_get_HasUnlocked();
-    hook_GetPurchaseStatus();
-    hook_get_GoldHats();
-    hook_get_Skins();
-    hook_get_Pets();
+    hook_HatManagerGetUnlockedPets();
+    hook_HatManagerGetUnlockedHats();
+    hook_HatManagerAllSkins();
+    hook_HatManagerAllPets();
+    hook_CustomizationDataSetName();
+    hook_CustomizationDataSetHat();
+    hook_CustomizationDataSetVisor();
+    hook_CustomizationDataSetSkin();
+    hook_CustomizationDataSetPet();
+    hook_CustomizationDataSetNamePlate();
 
-    // Vision, Chat, Host
-    hook_CalculateLightRadius();
-    hook_get_Vision();
-    hook_HudUpdate();
-    hook_SendChat();
-    hook_get_AmHost();
-    hook_RpcStartGame();
-    hook_EndGame();
-    hook_SyncSettings();
+    // Host / Misc
+    hook_InnerNetClientAmHost();
+    hook_BanMenuSetVisible();
+    hook_AccountManagerCanPlayOnline();
+    hook_PingTrackerUpdate();
+    hook_SceneManagerInternalSceneLoaded();
 
     g_hooksReady = true;
 }
 
-// ─── Delayed init ──────────────────────────────────────────────────────────
-// Waits for UnityFramework to load PLUS an extra 10s for Unity to finish
-// initializing (splash, rendering setup, etc.) before installing hooks or UI.
+// ═══════════════════════════════════════════════════════════════════════════════
+//  DELAYED INIT – waits for UnityFramework, installs hooks, shows UI
+// ═══════════════════════════════════════════════════════════════════════════════
+
 static void delayed_init(void) {
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        // Wait up to 60s for UnityFramework to appear
         for (int i = 0; i < 30; i++) {
             if (get_unity_base() != 0) break;
             sleep(2);
         }
-        if (get_unity_base() == 0) return;  // never loaded, give up
-        // Extra 10s for Unity to finish its init
+        if (get_unity_base() == 0) return;
         sleep(10);
-        // Install hooks on background thread (safe: IL2CPP table writes)
         register_all_hooks();
-        // Show UI on main thread (creates UIKit objects safely)
         [FloatingOverlay performSelectorOnMainThread:@selector(present)
                                          withObject:nil
                                       waitUntilDone:NO];
     });
 }
 
-// ─── Constructor – runs when dylib is loaded ────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CONSTRUCTOR – runs when dylib is loaded
+// ═══════════════════════════════════════════════════════════════════════════════
+
 __attribute__((constructor))
 static void initialize() {
-    // Free items unlocked by default
-    g_toggles.unlockAll = true;
-    g_toggles.freePurchases = true;
+    g_toggles.unlockFeatures = true;
+    g_toggles.freeCosmetics = true;
+    g_toggles.avoidPenalties = true;
+
     delayed_init();
 }

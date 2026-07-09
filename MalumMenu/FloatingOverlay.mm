@@ -166,38 +166,57 @@ static FloatingOverlay *s_shared = nil;
     [self.menuPanel addSubview:self.scrollView];
 
     CGFloat sy = 0;
-    sy = [self addSection:@"PLAYER"     atY:sy];
-    sy = [self addToggle:@"No Cooldown" key:@"noKillCooldown" atY:sy];
-    sy = [self addToggle:@"Auto Kill"   key:@"autoKill"      atY:sy];
-    sy = [self addToggle:@"Instant Tasks" key:@"instantTasks" atY:sy];
-    sy = [self addToggle:@"No Clip"     key:@"noClip"        atY:sy];
-    sy = [self addToggle:@"God Mode"    key:@"godMode"       atY:sy];
-    sy = [self addSpacing:8 atY:sy];
+    sy = [self addSection:@"MOVEMENT"    atY:sy];
+    sy = [self addToggle:@"No Clip"      key:@"noClip"        atY:sy];
+    sy = [self addToggle:@"Teleport Cursor" key:@"teleportCursor" atY:sy];
+    sy = [self addToggle:@"Invert Controls" key:@"invertControls" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
 
-    sy = [self addSection:@"ROLES"      atY:sy];
-    sy = [self addToggle:@"Force Imposter" key:@"forceImposter" atY:sy];
-    sy = [self addToggle:@"Show Roles"  key:@"showRoles"     atY:sy];
-    sy = [self addSpacing:8 atY:sy];
+    sy = [self addSection:@"COMBAT"      atY:sy];
+    sy = [self addToggle:@"No Kill CD"   key:@"noKillCd"      atY:sy];
+    sy = [self addToggle:@"Kill Anyone"  key:@"killAnyone"    atY:sy];
+    sy = [self addToggle:@"Kill Reach"   key:@"killReach"     atY:sy];
+    sy = [self addToggle:@"Complete Tasks" key:@"completeMyTasks" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
 
-    sy = [self addSection:@"VISION"     atY:sy];
-    sy = [self addToggle:@"Max Vision"  key:@"maxVision"     atY:sy];
-    sy = [self addToggle:@"See Ghosts"  key:@"showGhosts"    atY:sy];
-    sy = [self addSpacing:8 atY:sy];
+    sy = [self addSection:@"ROLES"       atY:sy];
+    sy = [self addToggle:@"Endless SS Duration" key:@"endlessSsDuration" atY:sy];
+    sy = [self addToggle:@"No SS Anim"   key:@"noShapeshiftAnim" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
 
-    sy = [self addSection:@"COSMETICS"  atY:sy];
-    sy = [self addToggle:@"Unlock All"  key:@"unlockAll"     atY:sy];
-    sy = [self addToggle:@"Free Purchases" key:@"freePurchases" atY:sy];
-    sy = [self addSpacing:8 atY:sy];
+    sy = [self addSection:@"ESP"         atY:sy];
+    sy = [self addToggle:@"See Ghosts"   key:@"seeGhosts"     atY:sy];
+    sy = [self addToggle:@"See Roles"    key:@"seeRoles"      atY:sy];
+    sy = [self addToggle:@"No Shadows"   key:@"noShadows"     atY:sy];
+    sy = [self addToggle:@"Reveal Votes" key:@"revealVotes"   atY:sy];
+    sy = [self addSpacing:6 atY:sy];
 
-    sy = [self addSection:@"HOST"       atY:sy];
-    sy = [self addToggle:@"Always Host" key:@"alwaysHost"    atY:sy];
-    sy = [self addToggle:@"Force Start" key:@"forceStart"    atY:sy];
-    sy = [self addToggle:@"Force End"   key:@"forceEnd"      atY:sy];
-    sy = [self addSpacing:8 atY:sy];
+    sy = [self addSection:@"COSMETICS"   atY:sy];
+    sy = [self addToggle:@"Free Cosmetics" key:@"freeCosmetics" atY:sy];
+    sy = [self addToggle:@"Unlock Features" key:@"unlockFeatures" atY:sy];
+    sy = [self addToggle:@"No Penalties" key:@"avoidPenalties" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
 
-    sy = [self addSection:@"CHAT"       atY:sy];
-    sy = [self addToggle:@"Bypass Filters" key:@"bypassFilters" atY:sy];
-    sy = [self addToggle:@"Spam Chat"  key:@"spamChat"       atY:sy];
+    sy = [self addSection:@"HOST"        atY:sy];
+    sy = [self addToggle:@"Vote Immune"  key:@"voteImmune"    atY:sy];
+    sy = [self addToggle:@"Force Start"  key:@"forceStartGame" atY:sy];
+    sy = [self addToggle:@"No Game End"  key:@"noGameEnd"     atY:sy];
+    sy = [self addToggle:@"No Options Limits" key:@"noOptionsLimits" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
+
+    sy = [self addSection:@"CHAT"        atY:sy];
+    sy = [self addToggle:@"Longer Messages" key:@"longerMessages" atY:sy];
+    sy = [self addToggle:@"Bypass URL Block" key:@"bypassUrlBlock" atY:sy];
+    sy = [self addToggle:@"Lower Rate Limits" key:@"lowerRateLimits" atY:sy];
+    sy = [self addSpacing:6 atY:sy];
+
+    sy = [self addSection:@"SHIP"        atY:sy];
+    sy = [self addToggle:@"Close Meeting" key:@"closeMeeting" atY:sy];
+    sy = [self addToggle:@"Skip Meeting" key:@"skipMeeting"   atY:sy];
+    sy = [self addToggle:@"Call Meeting" key:@"callMeeting"   atY:sy];
+    sy = [self addToggle:@"Unlock Vents" key:@"unlockVents"   atY:sy];
+    sy = [self addToggle:@"Walk in Vents" key:@"walkInVents"  atY:sy];
+    sy = [self addToggle:@"Auto Open Doors" key:@"autoOpenDoorsOnUse" atY:sy];
     sy += 8;
 
     self.scrollView.contentSize = CGSizeMake(kPanelWidth - 2*kMargin, sy);
@@ -260,48 +279,78 @@ static FloatingOverlay *s_shared = nil;
 
     BOOL val = sender.isOn;
 
-    // ── Player ──
-    if      ([foundKey isEqualToString:@"noKillCooldown"]) g_toggles.noKillCooldown = val;
-    else if ([foundKey isEqualToString:@"autoKill"])        g_toggles.autoKill        = val;
-    else if ([foundKey isEqualToString:@"instantTasks"])    g_toggles.instantTasks    = val;
-    else if ([foundKey isEqualToString:@"noClip"])          g_toggles.noClip          = val;
-    else if ([foundKey isEqualToString:@"godMode"])         g_toggles.godMode         = val;
+    // ── Movement ──
+    if      ([foundKey isEqualToString:@"noClip"])            g_toggles.noClip            = val;
+    else if ([foundKey isEqualToString:@"teleportCursor"])    g_toggles.teleportCursor    = val;
+    else if ([foundKey isEqualToString:@"invertControls"])    g_toggles.invertControls    = val;
     // ── Roles ──
-    else if ([foundKey isEqualToString:@"forceImposter"])   g_toggles.forceImposter   = val;
-    else if ([foundKey isEqualToString:@"showRoles"])       g_toggles.showRoles       = val;
-    // ── Vision ──
-    else if ([foundKey isEqualToString:@"maxVision"])       g_toggles.maxVision       = val;
-    else if ([foundKey isEqualToString:@"showGhosts"])      g_toggles.showGhosts      = val;
+    else if ([foundKey isEqualToString:@"noKillCd"])          g_toggles.noKillCd          = val;
+    else if ([foundKey isEqualToString:@"killAnyone"])        g_toggles.killAnyone        = val;
+    else if ([foundKey isEqualToString:@"killReach"])         g_toggles.killReach         = val;
+    else if ([foundKey isEqualToString:@"completeMyTasks"])   g_toggles.completeMyTasks   = val;
+    else if ([foundKey isEqualToString:@"endlessSsDuration"]) g_toggles.endlessSsDuration = val;
+    else if ([foundKey isEqualToString:@"noShapeshiftAnim"])  g_toggles.noShapeshiftAnim  = val;
+    // ── ESP / Vision ──
+    else if ([foundKey isEqualToString:@"seeGhosts"])         g_toggles.seeGhosts         = val;
+    else if ([foundKey isEqualToString:@"seeRoles"])          g_toggles.seeRoles          = val;
+    else if ([foundKey isEqualToString:@"seeDisguises"])      g_toggles.seeDisguises      = val;
+    else if ([foundKey isEqualToString:@"revealVotes"])       g_toggles.revealVotes       = val;
+    else if ([foundKey isEqualToString:@"noShadows"])         g_toggles.noShadows         = val;
     // ── Cosmetics ──
-    else if ([foundKey isEqualToString:@"unlockAll"])       g_toggles.unlockAll       = val;
-    else if ([foundKey isEqualToString:@"freePurchases"])   g_toggles.freePurchases   = val;
+    else if ([foundKey isEqualToString:@"freeCosmetics"])     g_toggles.freeCosmetics     = val;
+    else if ([foundKey isEqualToString:@"unlockFeatures"])    g_toggles.unlockFeatures    = val;
+    else if ([foundKey isEqualToString:@"avoidPenalties"])    g_toggles.avoidPenalties    = val;
     // ── Host ──
-    else if ([foundKey isEqualToString:@"alwaysHost"])      g_toggles.alwaysHost      = val;
-    else if ([foundKey isEqualToString:@"forceStart"])      g_toggles.forceStart      = val;
-    else if ([foundKey isEqualToString:@"forceEnd"])        g_toggles.forceEnd        = val;
+    else if ([foundKey isEqualToString:@"voteImmune"])        g_toggles.voteImmune        = val;
+    else if ([foundKey isEqualToString:@"forceStartGame"])    g_toggles.forceStartGame    = val;
+    else if ([foundKey isEqualToString:@"noGameEnd"])         g_toggles.noGameEnd         = val;
+    else if ([foundKey isEqualToString:@"noOptionsLimits"])   g_toggles.noOptionsLimits   = val;
     // ── Chat ──
-    else if ([foundKey isEqualToString:@"bypassFilters"])   g_toggles.bypassFilters   = val;
-    else if ([foundKey isEqualToString:@"spamChat"])        g_toggles.spamChat        = val;
+    else if ([foundKey isEqualToString:@"longerMessages"])    g_toggles.longerMessages    = val;
+    else if ([foundKey isEqualToString:@"bypassUrlBlock"])    g_toggles.bypassUrlBlock    = val;
+    else if ([foundKey isEqualToString:@"lowerRateLimits"])   g_toggles.lowerRateLimits   = val;
+    // ── Ship ──
+    else if ([foundKey isEqualToString:@"closeMeeting"])      g_toggles.closeMeeting      = val;
+    else if ([foundKey isEqualToString:@"skipMeeting"])       g_toggles.skipMeeting       = val;
+    else if ([foundKey isEqualToString:@"callMeeting"])       g_toggles.callMeeting       = val;
+    else if ([foundKey isEqualToString:@"unlockVents"])       g_toggles.unlockVents       = val;
+    else if ([foundKey isEqualToString:@"walkInVents"])       g_toggles.walkInVents       = val;
+    // ── Sabotage ──
+    else if ([foundKey isEqualToString:@"autoOpenDoorsOnUse"]) g_toggles.autoOpenDoorsOnUse = val;
 }
 
 // ─── Sync UI ← global toggles ───────────────────────────────────────────────
 - (void)syncUI {
-    [self setSwitch:@"noKillCooldown" on:g_toggles.noKillCooldown];
-    [self setSwitch:@"autoKill"        on:g_toggles.autoKill];
-    [self setSwitch:@"instantTasks"    on:g_toggles.instantTasks];
-    [self setSwitch:@"noClip"          on:g_toggles.noClip];
-    [self setSwitch:@"godMode"         on:g_toggles.godMode];
-    [self setSwitch:@"forceImposter"   on:g_toggles.forceImposter];
-    [self setSwitch:@"showRoles"       on:g_toggles.showRoles];
-    [self setSwitch:@"maxVision"       on:g_toggles.maxVision];
-    [self setSwitch:@"showGhosts"      on:g_toggles.showGhosts];
-    [self setSwitch:@"unlockAll"       on:g_toggles.unlockAll];
-    [self setSwitch:@"freePurchases"   on:g_toggles.freePurchases];
-    [self setSwitch:@"alwaysHost"      on:g_toggles.alwaysHost];
-    [self setSwitch:@"forceStart"      on:g_toggles.forceStart];
-    [self setSwitch:@"forceEnd"        on:g_toggles.forceEnd];
-    [self setSwitch:@"bypassFilters"   on:g_toggles.bypassFilters];
-    [self setSwitch:@"spamChat"        on:g_toggles.spamChat];
+    [self setSwitch:@"noClip"            on:g_toggles.noClip];
+    [self setSwitch:@"teleportCursor"    on:g_toggles.teleportCursor];
+    [self setSwitch:@"invertControls"    on:g_toggles.invertControls];
+    [self setSwitch:@"noKillCd"          on:g_toggles.noKillCd];
+    [self setSwitch:@"killAnyone"        on:g_toggles.killAnyone];
+    [self setSwitch:@"killReach"         on:g_toggles.killReach];
+    [self setSwitch:@"completeMyTasks"   on:g_toggles.completeMyTasks];
+    [self setSwitch:@"endlessSsDuration" on:g_toggles.endlessSsDuration];
+    [self setSwitch:@"noShapeshiftAnim"  on:g_toggles.noShapeshiftAnim];
+    [self setSwitch:@"seeGhosts"         on:g_toggles.seeGhosts];
+    [self setSwitch:@"seeRoles"          on:g_toggles.seeRoles];
+    [self setSwitch:@"seeDisguises"      on:g_toggles.seeDisguises];
+    [self setSwitch:@"revealVotes"       on:g_toggles.revealVotes];
+    [self setSwitch:@"noShadows"         on:g_toggles.noShadows];
+    [self setSwitch:@"freeCosmetics"     on:g_toggles.freeCosmetics];
+    [self setSwitch:@"unlockFeatures"    on:g_toggles.unlockFeatures];
+    [self setSwitch:@"avoidPenalties"    on:g_toggles.avoidPenalties];
+    [self setSwitch:@"voteImmune"        on:g_toggles.voteImmune];
+    [self setSwitch:@"forceStartGame"    on:g_toggles.forceStartGame];
+    [self setSwitch:@"noGameEnd"         on:g_toggles.noGameEnd];
+    [self setSwitch:@"noOptionsLimits"   on:g_toggles.noOptionsLimits];
+    [self setSwitch:@"longerMessages"    on:g_toggles.longerMessages];
+    [self setSwitch:@"bypassUrlBlock"    on:g_toggles.bypassUrlBlock];
+    [self setSwitch:@"lowerRateLimits"   on:g_toggles.lowerRateLimits];
+    [self setSwitch:@"closeMeeting"      on:g_toggles.closeMeeting];
+    [self setSwitch:@"skipMeeting"       on:g_toggles.skipMeeting];
+    [self setSwitch:@"callMeeting"       on:g_toggles.callMeeting];
+    [self setSwitch:@"unlockVents"       on:g_toggles.unlockVents];
+    [self setSwitch:@"walkInVents"       on:g_toggles.walkInVents];
+    [self setSwitch:@"autoOpenDoorsOnUse" on:g_toggles.autoOpenDoorsOnUse];
 }
 
 - (void)setSwitch:(NSString *)key on:(BOOL)on {

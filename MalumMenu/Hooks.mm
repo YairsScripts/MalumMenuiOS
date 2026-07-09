@@ -1,237 +1,436 @@
-// ============================================================================
-// Hooks.mm – All IL2CPP method hooks for MalumMenu features.
-// Each hook_<Name>() reads the global MenuToggles and modifies behaviour.
-// Adjust the IL2CPP calling-convention signatures below if the iOS binary
-// uses the extra "MethodInfo *" parameter (typical of modern Unity).
-// ============================================================================
-
 #import "MalumMenu.h"
 #include "IL2Hook.h"
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ORIGINAL-FUNCTION POINTERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ORIGINAL FUNCTION POINTERS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Game & Player Logic (PlayerControl)
+// Core Updates
 static void (*orig_FixedUpdate)(void *__this);
 static void (*orig_SetKillTimer)(void *__this, float cooldown);
 static void (*orig_MurderPlayer)(void *__this, void *target, int32_t resultFlags);
 static void (*orig_RpcCompleteTask)(void *__this, uint32_t taskId);
-static bool (*orig_get_IsImposter)(void *__this);          // RoleBehaviour.get_IsImpostor
-static bool (*orig_IsImposter)(void *__this);              // RoleManager.IsImpostorRole (static)
-static void *(*orig_get_Data)(void *__this);               // -> NetworkedPlayerInfo
-static bool (*orig_CanMove)(void *__this);
-static void (*orig_Die)(void *__this, int32_t reason, bool assignGhostRole);
-static void (*orig_Revive)(void *__this);
+static void (*orig_RpcSetRole)(void *__this, void *targetPlayer, int32_t role);
+static void (*orig_RpcSyncSettings)(void *__this, void *options);
+static void (*orig_PlayerPhysicsFixedUpdate)(void *__this);
+static void (*orig_PlayerPhysicsLateUpdate)(void *__this);
+static void (*orig_PlayerPhysicsHandleAnimation)(void *__this);
+static void (*orig_PlayerPhysicsCoEnterVent)(void *__this, int32_t id);
+static void (*orig_PlayerPhysicsCoExitVent)(void *__this, int32_t id);
+static void (*orig_ShipStatusFixedUpdate)(void *__this);
+static void (*orig_ShipStatusCalculateLightRadius)(void *__this, void *player);
+static void (*orig_ShipStatusUpdateSystem)(void *__this, int32_t systemType, void *msg);
+static void (*orig_HudManagerUpdate)(void *__this);
+static void (*orig_AmongUsClientUpdate)(void *__this);
+static void (*orig_AmongUsClientOnGameJoined)(void *__this, void *gameIdString);
+static void (*orig_AmongUsClientStartGame)(void *__this);
+
+// Meetings
+static void (*orig_MeetingHudUpdate)(void *__this);
+static void (*orig_MeetingHudVotingComplete)(void *__this, void *states);
+static void (*orig_MeetingHudClose)(void *__this);
+static void (*orig_MeetingHudCastVote)(void *__this, void *voterId, void *suspectIdx);
+static void (*orig_MeetingHudServerStart)(void *__this, void *reader);
+static void (*orig_MeetingHudDeserialize)(void *__this, void *reader, bool initialState);
+
+// Game logic
+static bool (*orig_GameManagerCanReportBodies)(void *__this);
+static void (*orig_GameManagerRpcEndGame)(void *__this, int32_t endReason, bool showAd);
+static void (*orig_GameStartManagerUpdate)(void *__this);
+static void *(*orig_GameDataGetPlayerById)(void *__this, uint8_t playerId);
+
+// Chat
+static void (*orig_ChatControllerSendChat)(void *__this);
 
 // Roles
-static void (*orig_SetRole)(void *__this, void *targetPlayer, int32_t role);
-static int32_t (*orig_get_Role)(void *__this);
-static bool (*orig_IsRole)(void *__this, int32_t role);
-static bool (*orig_CanReport)(void *__this);
-static bool (*orig_CanVent)(void *__this);
+static bool (*orig_RoleBehaviourGetIsImpostor)(void *__this);
+static bool (*orig_RoleManagerIsImpostorRole)(void *__this, int32_t role);
+static void (*orig_RoleManagerSetRole)(void *__this, void *targetPlayer, int32_t role);
 
-// Cosmetics (HatManager)
-static bool (*orig_get_HasUnlocked)(void *__this);
-static bool (*orig_GetPurchaseStatus)(void *__this, void *productId);
-static void *(*orig_get_GoldHats)(void *__this);           // GetUnlockedHats
-static void *(*orig_get_Skins)(void *__this);              // get_AllSkins
-static void *(*orig_get_Pets)(void *__this);               // get_AllPets
+// Player
+static void *(*orig_PlayerControlGetData)(void *__this);
+static bool (*orig_PlayerControlCanMove)(void *__this);
+static void (*orig_PlayerControlDie)(void *__this, int32_t reason, bool assignGhostRole);
+static void (*orig_PlayerControlRevive)(void *__this);
 
-// Vision, Chat, Host
-static float (*orig_CalculateLightRadius)(void *__this, void *player);  // ShipStatus virtual
-static float (*orig_get_Vision)(void *__this);
-static void (*orig_HudUpdate)(void *__this);
-static void (*orig_SendChat)(void *__this);
-static bool (*orig_get_AmHost)(void *__this);
-static void (*orig_RpcStartGame)(void *__this);
-static void (*orig_EndGame)(void *__this, int32_t endReason, bool showAd);
-static void (*orig_SyncSettings)(void *__this, void *options);
+// Cosmetics
+static bool (*orig_HatManagerGetUnlockedPets)(void *__this);
+static bool (*orig_HatManagerGetUnlockedHats)(void *__this);
+static void *(*orig_HatManagerAllSkins)(void *__this);
+static void *(*orig_HatManagerAllPets)(void *__this);
+static void (*orig_CustomizationDataSetName)(void *__this, void *value);
+static void (*orig_CustomizationDataSetHat)(void *__this, void *value);
+static void (*orig_CustomizationDataSetVisor)(void *__this, void *value);
+static void (*orig_CustomizationDataSetSkin)(void *__this, void *value);
+static void (*orig_CustomizationDataSetPet)(void *__this, void *value);
+static void (*orig_CustomizationDataSetNamePlate)(void *__this, void *value);
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  PLAYER LOGIC HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
+// Host / Misc
+static bool (*orig_InnerNetClientAmHost)(void *__this);
+static void (*orig_BanMenuSetVisible)(void *__this, bool show);
+static bool (*orig_AccountManagerCanPlayOnline)(void *__this);
+static void (*orig_PingTrackerUpdate)(void *__this);
+static void (*orig_SceneManagerInternalSceneLoaded)(void *__this, void *scene, void *mode);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PLAYER CONTROL HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 static void hook_FixedUpdate_repl(void *__this) {
     orig_FixedUpdate(__this);
-
-    if (!g_toggles.noClip && !g_toggles.autoKill && !g_toggles.showGhosts &&
-        !g_toggles.forceStart && !g_toggles.spamChat)
-        return;
-
-    // noClip – keep CanMove alive every frame (defence against server-side checks)
-    // autoKill – murder nearest player if forceImposter is active (basic implementation)
-    // showGhosts – typically handled by hooking visibility checks
-
-    if (g_toggles.forceStart) {
-        // Call RpcStartGame every frame (game will ignore extra calls once started)
-        // This is a simplified example; real impl. would find AmongUsClient instance.
-    }
-
-    if (g_toggles.spamChat) {
-        // Re-send the last chat message every 60 frames (pseudo)
-    }
 }
 
 static void hook_SetKillTimer_repl(void *__this, float cooldown) {
-    if (g_toggles.noKillCooldown) {
+    if (g_toggles.noKillCd) {
         cooldown = 0.0f;
     }
     orig_SetKillTimer(__this, cooldown);
 }
 
 static void hook_MurderPlayer_repl(void *__this, void *target, int32_t resultFlags) {
-    if (!g_toggles.autoKill && target == __this) return;
     orig_MurderPlayer(__this, target, resultFlags);
 }
 
 static void hook_RpcCompleteTask_repl(void *__this, uint32_t taskId) {
-    if (g_toggles.instantTasks) {
-        // Optionally skip calling original to prevent server sync.
+    if (g_toggles.completeMyTasks) {
         return;
     }
     orig_RpcCompleteTask(__this, taskId);
 }
 
-static bool hook_get_IsImposter_repl(void *__this) {
-    if (g_toggles.forceImposter) return true;
-    return orig_get_IsImposter(__this);
+static void hook_RpcSetRole_repl(void *__this, void *targetPlayer, int32_t role) {
+    orig_RpcSetRole(__this, targetPlayer, role);
 }
 
-static bool hook_IsImposter_repl(void *__this) {
-    if (g_toggles.forceImposter) return true;
-    return orig_IsImposter(__this);
+static void hook_RpcSyncSettings_repl(void *__this, void *options) {
+    if (g_toggles.noOptionsLimits) return;
+    orig_RpcSyncSettings(__this, options);
 }
 
-static void *hook_get_Data_repl(void *__this) {
-    return orig_get_Data(__this);
+static void *hook_PlayerControlGetData_repl(void *__this) {
+    return orig_PlayerControlGetData(__this);
 }
 
-static bool hook_CanMove_repl(void *__this) {
+static bool hook_PlayerControlCanMove_repl(void *__this) {
     if (g_toggles.noClip) return true;
-    return orig_CanMove(__this);
+    return orig_PlayerControlCanMove(__this);
 }
 
-static void hook_Die_repl(void *__this, int32_t reason, bool assignGhostRole) {
-    if (g_toggles.godMode) return;
-    orig_Die(__this, reason, assignGhostRole);
+static void hook_PlayerControlDie_repl(void *__this, int32_t reason, bool assignGhostRole) {
+    if (g_toggles.avoidPenalties) return;
+    orig_PlayerControlDie(__this, reason, assignGhostRole);
 }
 
-static void hook_Revive_repl(void *__this) {
-    orig_Revive(__this);
+static void hook_PlayerControlRevive_repl(void *__this) {
+    orig_PlayerControlRevive(__this);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ROLE HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PLAYER PHYSICS HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-static void hook_SetRole_repl(void *__this, void *targetPlayer, int32_t role) {
-    orig_SetRole(__this, targetPlayer, role);
+static void hook_PlayerPhysicsFixedUpdate_repl(void *__this) {
+    orig_PlayerPhysicsFixedUpdate(__this);
 }
 
-static int32_t hook_get_Role_repl(void *__this) {
-    return orig_get_Role(__this);
-}
+static void hook_PlayerPhysicsLateUpdate_repl(void *__this) {
+    orig_PlayerPhysicsLateUpdate(__this);
 
-static bool hook_IsRole_repl(void *__this, int32_t role) {
-    return orig_IsRole(__this, role);
-}
-
-static bool hook_CanReport_repl(void *__this) {
-    if (g_toggles.forceImposter) return true;  // imposters can always report
-    return orig_CanReport(__this);
-}
-
-static bool hook_CanVent_repl(void *__this) {
-    if (g_toggles.forceImposter) return true;  // imposters can always vent
-    return orig_CanVent(__this);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  COSMETIC UNLOCK HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-static bool hook_get_HasUnlocked_repl(void *__this) {
-    if (g_toggles.unlockAll) return true;
-    return orig_get_HasUnlocked(__this);
-}
-
-static bool hook_GetPurchaseStatus_repl(void *__this, void *productId) {
-    if (g_toggles.freePurchases) return true;
-    return orig_GetPurchaseStatus(__this, productId);
-}
-
-static void *hook_get_GoldHats_repl(void *__this) {
-    return orig_get_GoldHats(__this);
-}
-
-static void *hook_get_Skins_repl(void *__this) {
-    return orig_get_Skins(__this);
-}
-
-static void *hook_get_Pets_repl(void *__this) {
-    return orig_get_Pets(__this);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  VISION HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-static float hook_CalculateLightRadius_repl(void *__this, void *player) {
-    if (g_toggles.maxVision) return 1000.0f;
-    return orig_CalculateLightRadius(__this, player);
-}
-
-static float hook_get_Vision_repl(void *__this) {
-    if (g_toggles.maxVision) return 10.0f;     // max light modifier
-    return orig_get_Vision(__this);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  HUD & CHAT HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-static void hook_HudUpdate_repl(void *__this) {
-    orig_HudUpdate(__this);
-
-    // If showRoles is on, draw role labels above players.
-    // This would involve iterating PlayerControl instances and
-    // rendering text via the game's own text components or via ImGui.
-}
-
-static void hook_SendChat_repl(void *__this) {
-    if (g_toggles.bypassFilters) {
-        // Modify freeChatField.text before calling original
+    if (g_toggles.noClip && __this != 0) {
+        // PlayerPhysics.myPlayer.Collider.enabled = false
     }
-    orig_SendChat(__this);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  HOST HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-static bool hook_get_AmHost_repl(void *__this) {
-    if (g_toggles.alwaysHost) return true;
-    return orig_get_AmHost(__this);
+static void hook_PlayerPhysicsHandleAnimation_repl(void *__this) {
+    if (g_toggles.moonWalk) {
+        return;
+    }
+    orig_PlayerPhysicsHandleAnimation(__this);
 }
 
-static void hook_RpcStartGame_repl(void *__this) {
-    orig_RpcStartGame(__this);
+static void hook_PlayerPhysicsCoEnterVent_repl(void *__this, int32_t id) {
+    orig_PlayerPhysicsCoEnterVent(__this, id);
 }
 
-static void hook_EndGame_repl(void *__this, int32_t endReason, bool showAd) {
-    orig_EndGame(__this, endReason, showAd);
+static void hook_PlayerPhysicsCoExitVent_repl(void *__this, int32_t id) {
+    orig_PlayerPhysicsCoExitVent(__this, id);
 }
 
-static void hook_SyncSettings_repl(void *__this, void *options) {
-    orig_SyncSettings(__this, options);
+// ═══════════════════════════════════════════════════════════════════════════════
+//  NON-VOID RETURNING HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static bool hook_GameManagerCanReportBodies_repl(void *__this) {
+    return orig_GameManagerCanReportBodies(__this);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  HOOK REGISTRATORS  –  called once from TweakEntry.mm constructor.
-//  Leaves a placeholder even when offset is 0x0 so you just need to
-//  fill O_* values in MalumMenu.c (or a offsets.c) and recompile.
-// ─────────────────────────────────────────────────────────────────────────────
+static void *hook_GameDataGetPlayerById_repl(void *__this, uint8_t playerId) {
+    return orig_GameDataGetPlayerById(__this, playerId);
+}
+
+static bool hook_RoleBehaviourGetIsImpostor_repl(void *__this) {
+    return orig_RoleBehaviourGetIsImpostor(__this);
+}
+
+static bool hook_RoleManagerIsImpostorRole_repl(void *__this, int32_t role) {
+    return orig_RoleManagerIsImpostorRole(__this, role);
+}
+
+static bool hook_InnerNetClientAmHost_repl(void *__this) {
+    return orig_InnerNetClientAmHost(__this);
+}
+
+static bool hook_AccountManagerCanPlayOnline_repl(void *__this) {
+    if (g_toggles.unlockFeatures) return true;
+    return orig_AccountManagerCanPlayOnline(__this);
+}
+
+static bool hook_HatManagerGetUnlockedPets_repl(void *__this) {
+    if (g_toggles.freeCosmetics) return true;
+    return orig_HatManagerGetUnlockedPets(__this);
+}
+
+static bool hook_HatManagerGetUnlockedHats_repl(void *__this) {
+    if (g_toggles.freeCosmetics) return true;
+    return orig_HatManagerGetUnlockedHats(__this);
+}
+
+static void *hook_HatManagerAllSkins_repl(void *__this) {
+    return orig_HatManagerAllSkins(__this);
+}
+
+static void *hook_HatManagerAllPets_repl(void *__this) {
+    return orig_HatManagerAllPets(__this);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SHIP STATUS HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static void hook_ShipStatusFixedUpdate_repl(void *__this) {
+    orig_ShipStatusFixedUpdate(__this);
+
+    if (g_toggles.closeMeeting) {
+        g_toggles.closeMeeting = false;
+    }
+
+    if (g_toggles.skipMeeting) {
+        g_toggles.skipMeeting = false;
+    }
+
+    if (g_toggles.callMeeting) {
+        g_toggles.callMeeting = false;
+    }
+
+    if (g_toggles.walkInVents && __this != 0) {
+        // PlayerControl.LocalPlayer.inVent = false
+        // PlayerControl.LocalPlayer.moveable = true
+    }
+
+    if (g_toggles.kickVents) {
+        g_toggles.kickVents = false;
+    }
+}
+
+static float hook_ShipStatusCalculateLightRadius_repl(void *__this, void *player) {
+    if (g_toggles.noShadows) return 1000.0f;
+    return orig_ShipStatusCalculateLightRadius(__this, player);
+}
+
+static void hook_ShipStatusUpdateSystem_repl(void *__this, int32_t systemType, void *msg) {
+    orig_ShipStatusUpdateSystem(__this, systemType, msg);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HUD MANAGER HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static void hook_HudManagerUpdate_repl(void *__this) {
+    orig_HudManagerUpdate(__this);
+
+    if (g_toggles.noShadows) {
+        // ShadowQuad.gameObject.SetActive(false)
+    }
+
+    if (g_toggles.enableChat) {
+        // Chat.gameObject.SetActive(true)
+    }
+
+    if (g_toggles.unlockVents && __this != 0) {
+        // ImpostorVentButton.gameObject.SetActive(true)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  AMONG US CLIENT HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static void hook_AmongUsClientUpdate_repl(void *__this) {
+    orig_AmongUsClientUpdate(__this);
+}
+
+static void hook_AmongUsClientOnGameJoined_repl(void *__this, void *gameIdString) {
+    orig_AmongUsClientOnGameJoined(__this, gameIdString);
+}
+
+static void hook_AmongUsClientStartGame_repl(void *__this) {
+    orig_AmongUsClientStartGame(__this);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  MEETING HUD HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static void hook_MeetingHudUpdate_repl(void *__this) {
+    if (g_toggles.revealVotes && __this != 0) {
+        // Bloop vote icons + set vote spreader active
+    }
+    orig_MeetingHudUpdate(__this);
+}
+
+static void hook_MeetingHudVotingComplete_repl(void *__this, void *states) {
+    orig_MeetingHudVotingComplete(__this, states);
+}
+
+static void hook_MeetingHudClose_repl(void *__this) {
+    orig_MeetingHudClose(__this);
+}
+
+static void hook_MeetingHudCastVote_repl(void *__this, void *voterId, void *suspectIdx) {
+    orig_MeetingHudCastVote(__this, voterId, suspectIdx);
+}
+
+static void hook_MeetingHudServerStart_repl(void *__this, void *reader) {
+    orig_MeetingHudServerStart(__this, reader);
+}
+
+static void hook_MeetingHudDeserialize_repl(void *__this, void *reader, bool initialState) {
+    orig_MeetingHudDeserialize(__this, reader, initialState);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GAME LOGIC HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static bool hook_GameManagerCanReportBodies_repl(void *__this) {
+    return orig_GameManagerCanReportBodies(__this);
+}
+
+static void hook_GameManagerRpcEndGame_repl(void *__this, int32_t endReason, bool showAd) {
+    if (g_toggles.noGameEnd) return;
+    orig_GameManagerRpcEndGame(__this, endReason, showAd);
+}
+
+static void hook_GameStartManagerUpdate_repl(void *__this) {
+    orig_GameStartManagerUpdate(__this);
+}
+
+static void *hook_GameDataGetPlayerById_repl(void *__this, uint8_t playerId) {
+    return orig_GameDataGetPlayerById(__this, playerId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CHAT HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static void hook_ChatControllerSendChat_repl(void *__this) {
+    orig_ChatControllerSendChat(__this);
+    if (!g_toggles.lowerRateLimits || __this == 0) return;
+    volatile float *rate = (volatile float *)((uintptr_t)__this + 0x??);
+    if (*rate == 0.0f) *rate += 1.0f;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ROLE LOGIC HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static bool hook_RoleBehaviourGetIsImpostor_repl(void *__this) {
+    return orig_RoleBehaviourGetIsImpostor(__this);
+}
+
+static bool hook_RoleManagerIsImpostorRole_repl(void *__this, int32_t role) {
+    return orig_RoleManagerIsImpostorRole(__this, role);
+}
+
+static void hook_RoleManagerSetRole_repl(void *__this, void *targetPlayer, int32_t role) {
+    orig_RoleManagerSetRole(__this, targetPlayer, role);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  COSMETIC / UNLOCK HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static bool hook_HatManagerGetUnlockedPets_repl(void *__this) {
+    if (g_toggles.freeCosmetics) return true;
+    return orig_HatManagerGetUnlockedPets(__this);
+}
+
+static bool hook_HatManagerGetUnlockedHats_repl(void *__this) {
+    if (g_toggles.freeCosmetics) return true;
+    return orig_HatManagerGetUnlockedHats(__this);
+}
+
+static void *hook_HatManagerAllSkins_repl(void *__this) {
+    return orig_HatManagerAllSkins(__this);
+}
+
+static void *hook_HatManagerAllPets_repl(void *__this) {
+    return orig_HatManagerAllPets(__this);
+}
+
+static void hook_CustomizationDataSetName_repl(void *__this, void *value) {
+    orig_CustomizationDataSetName(__this, value);
+}
+
+static void hook_CustomizationDataSetHat_repl(void *__this, void *value) {
+    orig_CustomizationDataSetHat(__this, value);
+}
+
+static void hook_CustomizationDataSetVisor_repl(void *__this, void *value) {
+    orig_CustomizationDataSetVisor(__this, value);
+}
+
+static void hook_CustomizationDataSetSkin_repl(void *__this, void *value) {
+    orig_CustomizationDataSetSkin(__this, value);
+}
+
+static void hook_CustomizationDataSetPet_repl(void *__this, void *value) {
+    orig_CustomizationDataSetPet(__this, value);
+}
+
+static void hook_CustomizationDataSetNamePlate_repl(void *__this, void *value) {
+    orig_CustomizationDataSetNamePlate(__this, value);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HOST / MISC HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static bool hook_InnerNetClientAmHost_repl(void *__this) {
+    return orig_InnerNetClientAmHost(__this);
+}
+
+static void hook_BanMenuSetVisible_repl(void *__this, bool show) {
+    if (__this == 0) return;
+    orig_BanMenuSetVisible(__this, show);
+}
+
+static bool hook_AccountManagerCanPlayOnline_repl(void *__this) {
+    if (g_toggles.unlockFeatures) return true;
+    return orig_AccountManagerCanPlayOnline(__this);
+}
+
+static void hook_PingTrackerUpdate_repl(void *__this) {
+    orig_PingTrackerUpdate(__this);
+}
+
+static void hook_SceneManagerInternalSceneLoaded_repl(void *__this, void *scene, void *mode) {
+    orig_SceneManagerInternalSceneLoaded(__this, scene, mode);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HOOK REGISTRATORS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 #define TRY_HOOK(offset, replace, origPtr) \
     do { \
@@ -240,34 +439,69 @@ static void hook_SyncSettings_repl(void *__this, void *options) {
         } \
     } while (0)
 
-void hook_FixedUpdate(void)         { TRY_HOOK(O_FixedUpdate,         hook_FixedUpdate_repl,        &orig_FixedUpdate); }
-void hook_SetKillTimer(void)        { TRY_HOOK(O_SetKillTimer,        hook_SetKillTimer_repl,       &orig_SetKillTimer); }
-void hook_MurderPlayer(void)        { TRY_HOOK(O_MurderPlayer,        hook_MurderPlayer_repl,       &orig_MurderPlayer); }
-void hook_RpcCompleteTask(void)     { TRY_HOOK(O_RpcCompleteTask,     hook_RpcCompleteTask_repl,    &orig_RpcCompleteTask); }
-void hook_get_IsImposter(void)      { TRY_HOOK(O_get_IsImposter,      hook_get_IsImposter_repl,     &orig_get_IsImposter); }
-void hook_IsImposter(void)          { TRY_HOOK(O_IsImposter,          hook_IsImposter_repl,         &orig_IsImposter); }
-void hook_get_Data(void)            { TRY_HOOK(O_get_Data,            hook_get_Data_repl,           &orig_get_Data); }
-void hook_CanMove(void)             { TRY_HOOK(O_CanMove,             hook_CanMove_repl,            &orig_CanMove); }
-void hook_Die(void)                 { TRY_HOOK(O_Die,                 hook_Die_repl,                &orig_Die); }
-void hook_Revive(void)              { TRY_HOOK(O_Revive,              hook_Revive_repl,             &orig_Revive); }
+// Core Updates
+void hook_FixedUpdate(void)                    { TRY_HOOK(O_FixedUpdate, hook_FixedUpdate_repl, &orig_FixedUpdate); }
+void hook_SetKillTimer(void)                   { TRY_HOOK(O_SetKillTimer, hook_SetKillTimer_repl, &orig_SetKillTimer); }
+void hook_MurderPlayer(void)                   { TRY_HOOK(O_MurderPlayer, hook_MurderPlayer_repl, &orig_MurderPlayer); }
+void hook_RpcCompleteTask(void)                { TRY_HOOK(O_RpcCompleteTask, hook_RpcCompleteTask_repl, &orig_RpcCompleteTask); }
+void hook_RpcSetRole(void)                     { TRY_HOOK(O_RpcSetRole, hook_RpcSetRole_repl, &orig_RpcSetRole); }
+void hook_RpcSyncSettings(void)                { TRY_HOOK(O_RpcSyncSettings, hook_RpcSyncSettings_repl, &orig_RpcSyncSettings); }
+void hook_PlayerPhysicsFixedUpdate(void)       { TRY_HOOK(O_PlayerPhysicsFixedUpdate, hook_PlayerPhysicsFixedUpdate_repl, &orig_PlayerPhysicsFixedUpdate); }
+void hook_PlayerPhysicsLateUpdate(void)        { TRY_HOOK(O_PlayerPhysicsLateUpdate, hook_PlayerPhysicsLateUpdate_repl, &orig_PlayerPhysicsLateUpdate); }
+void hook_PlayerPhysicsHandleAnimation(void)   { TRY_HOOK(O_PlayerPhysicsHandleAnimation, hook_PlayerPhysicsHandleAnimation_repl, &orig_PlayerPhysicsHandleAnimation); }
+void hook_PlayerPhysicsCoEnterVent(void)       { TRY_HOOK(O_PlayerPhysicsCoEnterVent, hook_PlayerPhysicsCoEnterVent_repl, &orig_PlayerPhysicsCoEnterVent); }
+void hook_PlayerPhysicsCoExitVent(void)        { TRY_HOOK(O_PlayerPhysicsCoExitVent, hook_PlayerPhysicsCoExitVent_repl, &orig_PlayerPhysicsCoExitVent); }
+void hook_ShipStatusFixedUpdate(void)          { TRY_HOOK(O_ShipStatusFixedUpdate, hook_ShipStatusFixedUpdate_repl, &orig_ShipStatusFixedUpdate); }
+void hook_ShipStatusCalculateLightRadius(void) { TRY_HOOK(O_ShipStatusCalculateLightRadius, hook_ShipStatusCalculateLightRadius_repl, &orig_ShipStatusCalculateLightRadius); }
+void hook_ShipStatusUpdateSystem(void)         { TRY_HOOK(O_ShipStatusUpdateSystem, hook_ShipStatusUpdateSystem_repl, &orig_ShipStatusUpdateSystem); }
+void hook_HudManagerUpdate(void)               { TRY_HOOK(O_HudManagerUpdate, hook_HudManagerUpdate_repl, &orig_HudManagerUpdate); }
+void hook_AmongUsClientUpdate(void)            { TRY_HOOK(O_AmongUsClientUpdate, hook_AmongUsClientUpdate_repl, &orig_AmongUsClientUpdate); }
+void hook_AmongUsClientOnGameJoined(void)      { TRY_HOOK(O_AmongUsClientOnGameJoined, hook_AmongUsClientOnGameJoined_repl, &orig_AmongUsClientOnGameJoined); }
+void hook_AmongUsClientStartGame(void)         { TRY_HOOK(O_AmongUsClientStartGame, hook_AmongUsClientStartGame_repl, &orig_AmongUsClientStartGame); }
 
-void hook_SetRole(void)             { TRY_HOOK(O_SetRole,             hook_SetRole_repl,            &orig_SetRole); }
-void hook_get_Role(void)            { TRY_HOOK(O_get_Role,            hook_get_Role_repl,           &orig_get_Role); }
-void hook_IsRole(void)              { TRY_HOOK(O_IsRole,              hook_IsRole_repl,             &orig_IsRole); }
-void hook_CanReport(void)           { TRY_HOOK(O_CanReport,           hook_CanReport_repl,          &orig_CanReport); }
-void hook_CanVent(void)             { TRY_HOOK(O_CanVent,             hook_CanVent_repl,            &orig_CanVent); }
+// Meetings
+void hook_MeetingHudUpdate(void)               { TRY_HOOK(O_MeetingHudUpdate, hook_MeetingHudUpdate_repl, &orig_MeetingHudUpdate); }
+void hook_MeetingHudVotingComplete(void)       { TRY_HOOK(O_MeetingHudVotingComplete, hook_MeetingHudVotingComplete_repl, &orig_MeetingHudVotingComplete); }
+void hook_MeetingHudClose(void)                { TRY_HOOK(O_MeetingHudClose, hook_MeetingHudClose_repl, &orig_MeetingHudClose); }
+void hook_MeetingHudCastVote(void)             { TRY_HOOK(O_MeetingHudCastVote, hook_MeetingHudCastVote_repl, &orig_MeetingHudCastVote); }
+void hook_MeetingHudServerStart(void)          { TRY_HOOK(O_MeetingHudServerStart, hook_MeetingHudServerStart_repl, &orig_MeetingHudServerStart); }
+void hook_MeetingHudDeserialize(void)          { TRY_HOOK(O_MeetingHudDeserialize, hook_MeetingHudDeserialize_repl, &orig_MeetingHudDeserialize); }
 
-void hook_get_HasUnlocked(void)     { TRY_HOOK(O_get_HasUnlocked,     hook_get_HasUnlocked_repl,    &orig_get_HasUnlocked); }
-void hook_GetPurchaseStatus(void)   { TRY_HOOK(O_GetPurchaseStatus,   hook_GetPurchaseStatus_repl,  &orig_GetPurchaseStatus); }
-void hook_get_GoldHats(void)        { TRY_HOOK(O_get_GoldHats,        hook_get_GoldHats_repl,       &orig_get_GoldHats); }
-void hook_get_Skins(void)           { TRY_HOOK(O_get_Skins,           hook_get_Skins_repl,          &orig_get_Skins); }
-void hook_get_Pets(void)            { TRY_HOOK(O_get_Pets,            hook_get_Pets_repl,           &orig_get_Pets); }
+// Game logic
+void hook_GameManagerCanReportBodies(void)     { TRY_HOOK(O_GameManagerCanReportBodies, hook_GameManagerCanReportBodies_repl, &orig_GameManagerCanReportBodies); }
+void hook_GameManagerRpcEndGame(void)          { TRY_HOOK(O_GameManagerRpcEndGame, hook_GameManagerRpcEndGame_repl, &orig_GameManagerRpcEndGame); }
+void hook_GameStartManagerUpdate(void)         { TRY_HOOK(O_GameStartManagerUpdate, hook_GameStartManagerUpdate_repl, &orig_GameStartManagerUpdate); }
+void hook_GameDataGetPlayerById(void)          { TRY_HOOK(O_GameDataGetPlayerById, hook_GameDataGetPlayerById_repl, &orig_GameDataGetPlayerById); }
 
-void hook_CalculateLightRadius(void){ TRY_HOOK(O_CalculateLightRadius,hook_CalculateLightRadius_repl,&orig_CalculateLightRadius); }
-void hook_get_Vision(void)          { TRY_HOOK(O_get_Vision,          hook_get_Vision_repl,         &orig_get_Vision); }
-void hook_HudUpdate(void)           { TRY_HOOK(O_HudUpdate,           hook_HudUpdate_repl,          &orig_HudUpdate); }
-void hook_SendChat(void)            { TRY_HOOK(O_SendChat,            hook_SendChat_repl,           &orig_SendChat); }
-void hook_get_AmHost(void)          { TRY_HOOK(O_get_AmHost,          hook_get_AmHost_repl,         &orig_get_AmHost); }
-void hook_RpcStartGame(void)        { TRY_HOOK(O_RpcStartGame,        hook_RpcStartGame_repl,       &orig_RpcStartGame); }
-void hook_EndGame(void)             { TRY_HOOK(O_EndGame,             hook_EndGame_repl,            &orig_EndGame); }
-void hook_SyncSettings(void)        { TRY_HOOK(O_SyncSettings,        hook_SyncSettings_repl,       &orig_SyncSettings); }
+// Chat
+void hook_ChatControllerSendChat(void)         { TRY_HOOK(O_ChatControllerSendChat, hook_ChatControllerSendChat_repl, &orig_ChatControllerSendChat); }
+
+// Roles
+void hook_RoleBehaviourGetIsImpostor(void)     { TRY_HOOK(O_RoleBehaviourGetIsImpostor, hook_RoleBehaviourGetIsImpostor_repl, &orig_RoleBehaviourGetIsImpostor); }
+void hook_RoleManagerIsImpostorRole(void)      { TRY_HOOK(O_RoleManagerIsImpostorRole, hook_RoleManagerIsImpostorRole_repl, &orig_RoleManagerIsImpostorRole); }
+void hook_RoleManagerSetRole(void)             { TRY_HOOK(O_RoleManagerSetRole, hook_RoleManagerSetRole_repl, &orig_RoleManagerSetRole); }
+
+// Player
+void hook_PlayerControlGetData(void)           { TRY_HOOK(O_PlayerControlGetData, hook_PlayerControlGetData_repl, &orig_PlayerControlGetData); }
+void hook_PlayerControlCanMove(void)           { TRY_HOOK(O_PlayerControlCanMove, hook_PlayerControlCanMove_repl, &orig_PlayerControlCanMove); }
+void hook_PlayerControlDie(void)               { TRY_HOOK(O_PlayerControlDie, hook_PlayerControlDie_repl, &orig_PlayerControlDie); }
+void hook_PlayerControlRevive(void)            { TRY_HOOK(O_PlayerControlRevive, hook_PlayerControlRevive_repl, &orig_PlayerControlRevive); }
+
+// Cosmetics
+void hook_HatManagerGetUnlockedPets(void)      { TRY_HOOK(O_HatManagerGetUnlockedPets, hook_HatManagerGetUnlockedPets_repl, &orig_HatManagerGetUnlockedPets); }
+void hook_HatManagerGetUnlockedHats(void)      { TRY_HOOK(O_HatManagerGetUnlockedHats, hook_HatManagerGetUnlockedHats_repl, &orig_HatManagerGetUnlockedHats); }
+void hook_HatManagerAllSkins(void)             { TRY_HOOK(O_HatManagerAllSkins, hook_HatManagerAllSkins_repl, &orig_HatManagerAllSkins); }
+void hook_HatManagerAllPets(void)              { TRY_HOOK(O_HatManagerAllPets, hook_HatManagerAllPets_repl, &orig_HatManagerAllPets); }
+void hook_CustomizationDataSetName(void)       { TRY_HOOK(O_CustomizationDataSetName, hook_CustomizationDataSetName_repl, &orig_CustomizationDataSetName); }
+void hook_CustomizationDataSetHat(void)        { TRY_HOOK(O_CustomizationDataSetHat, hook_CustomizationDataSetHat_repl, &orig_CustomizationDataSetHat); }
+void hook_CustomizationDataSetVisor(void)      { TRY_HOOK(O_CustomizationDataSetVisor, hook_CustomizationDataSetVisor_repl, &orig_CustomizationDataSetVisor); }
+void hook_CustomizationDataSetSkin(void)       { TRY_HOOK(O_CustomizationDataSetSkin, hook_CustomizationDataSetSkin_repl, &orig_CustomizationDataSetSkin); }
+void hook_CustomizationDataSetPet(void)        { TRY_HOOK(O_CustomizationDataSetPet, hook_CustomizationDataSetPet_repl, &orig_CustomizationDataSetPet); }
+void hook_CustomizationDataSetNamePlate(void)  { TRY_HOOK(O_CustomizationDataSetNamePlate, hook_CustomizationDataSetNamePlate_repl, &orig_CustomizationDataSetNamePlate); }
+
+// Host / Misc
+void hook_InnerNetClientAmHost(void)           { TRY_HOOK(O_InnerNetClientAmHost, hook_InnerNetClientAmHost_repl, &orig_InnerNetClientAmHost); }
+void hook_BanMenuSetVisible(void)              { TRY_HOOK(O_BanMenuSetVisible, hook_BanMenuSetVisible_repl, &orig_BanMenuSetVisible); }
+void hook_AccountManagerCanPlayOnline(void)    { TRY_HOOK(O_AccountManagerCanPlayOnline, hook_AccountManagerCanPlayOnline_repl, &orig_AccountManagerCanPlayOnline); }
+void hook_PingTrackerUpdate(void)              { TRY_HOOK(O_PingTrackerUpdate, hook_PingTrackerUpdate_repl, &orig_PingTrackerUpdate); }
+void hook_SceneManagerInternalSceneLoaded(void) { TRY_HOOK(O_SceneManagerInternalSceneLoaded, hook_SceneManagerInternalSceneLoaded_repl, &orig_SceneManagerInternalSceneLoaded); }

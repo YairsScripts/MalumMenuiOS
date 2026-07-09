@@ -1,155 +1,285 @@
 #pragma once
 
-// ============================================================================
-// MalumMenu – iOS (ARM64) .dylib Tweak for Among Us (Unity IL2CPP)
-// Floating overlaid menu controlled by a draggable touch icon.
-// Inject via Sideloadly. Requires actual offsets from dump.cs.
-// ============================================================================
-
-#include <mach-o/dyld.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <objc/runtime.h>
-#include <string.h>
 
-// ---------------------------------------------------------------------------
-// ASLR Helper – finds UnityFramework base at runtime (iOS IL2CPP host dylib)
-// Iterates loaded images and matches "UnityFramework" in the path.
-// ---------------------------------------------------------------------------
-static inline uintptr_t get_unity_base(void) {
-    static uintptr_t base = 0;
-    if (base != 0) return base;
-    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
-        const char *name = _dyld_get_image_name(i);
-        if (strstr(name, "UnityFramework")) {
-            base = (uintptr_t)_dyld_get_image_header(i);
-            return base;
-        }
-    }
-    return 0;  // not loaded yet – safe, caller handles 0
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+//  OFFSET DECLARATIONS – defined in TweakEntry.mm
+// ═══════════════════════════════════════════════════════════════════════════════
 
-static inline uintptr_t real(uintptr_t offset) {
-    return get_unity_base() + offset;
-}
+extern uintptr_t O_FixedUpdate;
+extern uintptr_t O_SetKillTimer;
+extern uintptr_t O_MurderPlayer;
+extern uintptr_t O_RpcCompleteTask;
+extern uintptr_t O_RpcSetRole;
+extern uintptr_t O_RpcSyncSettings;
+extern uintptr_t O_PlayerPhysicsFixedUpdate;
+extern uintptr_t O_PlayerPhysicsLateUpdate;
+extern uintptr_t O_PlayerPhysicsHandleAnimation;
+extern uintptr_t O_PlayerPhysicsCoEnterVent;
+extern uintptr_t O_PlayerPhysicsCoExitVent;
+extern uintptr_t O_ShipStatusFixedUpdate;
+extern uintptr_t O_ShipStatusCalculateLightRadius;
+extern uintptr_t O_ShipStatusUpdateSystem;
+extern uintptr_t O_HudManagerUpdate;
+extern uintptr_t O_AmongUsClientUpdate;
+extern uintptr_t O_AmongUsClientOnGameJoined;
+extern uintptr_t O_AmongUsClientStartGame;
+extern uintptr_t O_MeetingHudUpdate;
+extern uintptr_t O_MeetingHudVotingComplete;
+extern uintptr_t O_MeetingHudClose;
+extern uintptr_t O_MeetingHudCastVote;
+extern uintptr_t O_MeetingHudServerStart;
+extern uintptr_t O_MeetingHudDeserialize;
+extern uintptr_t O_GameManagerCanReportBodies;
+extern uintptr_t O_GameManagerRpcEndGame;
+extern uintptr_t O_GameStartManagerUpdate;
+extern uintptr_t O_GameDataGetPlayerById;
+extern uintptr_t O_ChatControllerSendChat;
+extern uintptr_t O_RoleBehaviourGetIsImpostor;
+extern uintptr_t O_RoleManagerIsImpostorRole;
+extern uintptr_t O_RoleManagerSetRole;
+extern uintptr_t O_PlayerControlGetData;
+extern uintptr_t O_PlayerControlCanMove;
+extern uintptr_t O_PlayerControlDie;
+extern uintptr_t O_PlayerControlRevive;
+extern uintptr_t O_HatManagerGetUnlockedPets;
+extern uintptr_t O_HatManagerGetUnlockedHats;
+extern uintptr_t O_HatManagerAllSkins;
+extern uintptr_t O_HatManagerAllPets;
+extern uintptr_t O_CustomizationDataSetName;
+extern uintptr_t O_CustomizationDataSetHat;
+extern uintptr_t O_CustomizationDataSetVisor;
+extern uintptr_t O_CustomizationDataSetSkin;
+extern uintptr_t O_CustomizationDataSetPet;
+extern uintptr_t O_CustomizationDataSetNamePlate;
+extern uintptr_t O_InnerNetClientAmHost;
+extern uintptr_t O_BanMenuSetVisible;
+extern uintptr_t O_AccountManagerCanPlayOnline;
+extern uintptr_t O_PingTrackerUpdate;
+extern uintptr_t O_SceneManagerInternalSceneLoaded;
 
-// ============================================================================
-//  OFFSETS – extracted from dump.cs (Il2CppDumper v6.7.46)
-//  All values are RVAs within UnityFramework (__TEXT segment).
-//  Runtime adjustment via real() above.
-//  Build: Among Us iOS v2024.6.18 (Metadata v31)
-// ============================================================================
-
-// ── Game & Player Logic ─────────────────────────────────────────────────────
-extern uintptr_t O_FixedUpdate;           // PlayerControl.FixedUpdate() – main per-frame hook
-extern uintptr_t O_SetKillTimer;          // PlayerControl.SetKillTimer(float) – kill cooldown
-extern uintptr_t O_MurderPlayer;          // PlayerControl.MurderPlayer(PlayerControl) – kill action
-extern uintptr_t O_RpcCompleteTask;       // PlayerControl.RpcCompleteTask(uint) – task completion
-extern uintptr_t O_get_IsImposter;        // PlayerControl.get_IsImposter() – impostor check
-extern uintptr_t O_IsImposter;            // PlayerControl.IsImposter() – alt checker
-extern uintptr_t O_get_Data;              // PlayerControl.get_Data() – player data struct
-extern uintptr_t O_CanMove;               // PlayerControl.CanMove – movement lock check
-extern uintptr_t O_Die;                   // PlayerControl.Die(DeathReason) – death handler
-extern uintptr_t O_Revive;                // PlayerControl.Revive() – respawn
-
-// ── Roles & Modifiers ───────────────────────────────────────────────────────
-extern uintptr_t O_SetRole;               // RoleManager.SetRole(RoleTypes)
-extern uintptr_t O_get_Role;              // RoleManager.get_Role()
-extern uintptr_t O_IsRole;                // RoleManager.IsRole(RoleTypes)
-extern uintptr_t O_CanReport;             // PlayerControl.CanReport – can-report checker
-extern uintptr_t O_CanVent;               // PlayerControl.CanVent – can-vent checker
-
-// ── Cosmetics & Unlocks ─────────────────────────────────────────────────────
-extern uintptr_t O_get_HasUnlocked;       // UnlockManager.get_HasUnlocked()
-extern uintptr_t O_GetPurchaseStatus;     // StoreManager.GetPurchaseStatus(string)
-extern uintptr_t O_get_GoldHats;          // HatManager.get_GoldHats
-extern uintptr_t O_get_Skins;             // SkinManager.get_Skins
-extern uintptr_t O_get_Pets;              // PetManager.get_Pets
-
-// ── Vision, Chat & Host ─────────────────────────────────────────────────────
-extern uintptr_t O_CalculateLightRadius;  // PlayerControl.CalculateLightRadius(float)
-extern uintptr_t O_get_Vision;            // PlayerControl.get_Vision – light modifier
-extern uintptr_t O_HudUpdate;             // HudManager.Update() – HUD render cycle
-extern uintptr_t O_SendChat;              // ChatController.SendChat(string)
-extern uintptr_t O_get_AmHost;            // AmongUsClient.get_AmHost() – host check
-extern uintptr_t O_RpcStartGame;          // AmongUsClient.RpcStartGame(GameData)
-extern uintptr_t O_EndGame;               // GameManager.EndGame() / RpcEndGame
-extern uintptr_t O_SyncSettings;          // PlayerControl.SyncSettings(OptionContainer)
-
-// ============================================================================
-//  FEATURE TOGGLE STATE  –  read/written by hooks & UI
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TOGGLES – one bool per cheat, matching original MalumMenu CheatToggles
+// ═══════════════════════════════════════════════════════════════════════════════
 
 typedef struct {
-    // ── Player ──
-    bool noKillCooldown;        // SetKillTimer → 0
-    bool autoKill;              // FixedUpdate → murder nearest if target in range
-    bool instantTasks;          // RpcCompleteTask → skip task progress
-    bool wallhack;              // Override rendering / vision
-    bool noClip;                // CanMove → true (walk through walls)
-    bool godMode;               // Die → nop, Revive → trigger
-    bool maxVision;             // CalculateLightRadius → float_max
-    bool showGhosts;            // Allow seeing dead players
+    // ── General (always-on at start) ──
+    bool unlockFeatures;
+    bool freeCosmetics;
+    bool avoidPenalties;
 
-    // ── Roles ──
-    bool forceImposter;         // get_IsImposter / IsImposter → true
-    bool showRoles;             // HUD overlay role labels
+    // ── Movement ──
+    bool noClip;
+    bool teleportCursor;
+    bool invertControls;
+    bool moonWalk;
+    bool adjustSpeed;
+    bool freeAirshipDoors;
+    bool resetDoors;
+    bool openAllDoors;
+    bool pinPlayer;
+    bool keyStuck;
+    bool sizeHack;
+    bool wallPull;
+    bool wallPullKill;
+    bool noClipVent;
+    bool restoreDefaultSpeed;
+    bool adjustMovement;
 
-    // ── Cosmetics ──
-    bool unlockAll;             // get_HasUnlocked → true
-    bool freePurchases;         // GetPurchaseStatus → true
+    // ── Combat ──
+    bool noKillCd;
+    bool killAnyone;
+    bool killReach;
+    bool noKillRange;
+    bool killRange;
+    bool noKillAnim;
+    bool killAll;
+    bool dontKill;
+    bool killKiller;
+    bool killReport;
+    bool adjustKillDistance;
+    bool completeMyTasks;
 
-    // ── Host ──
-    bool alwaysHost;            // get_AmHost → true
-    bool forceStart;            // RpcStartGame called every N frames
-    bool forceEnd;              // EndGame called immediately
+    // ── Visual / ESP ──
+    bool wallHack;
+    bool noShadows;
+    bool showAllPlayers;
+    bool showGhosts;
+    bool seeGhosts;
+    bool showProtect;
+    bool showVitals;
+    bool showName;
+    bool adjustColor;
+    bool adjustOpacity;
+    bool revealRoles;
+    bool seeRoles;
+    bool seeDisguises;
+    bool revealVotes;
+    bool espEnabled;
+    bool espShowDistance;
+    bool espColorByRole;
+    bool espShowName;
+    bool espShowRole;
+    bool espShowDead;
+    bool espShowVents;
+    bool espShowSabotage;
+    bool espShowTasks;
 
     // ── Chat ──
-    bool bypassFilters;         // Strip / bypass chat filters
-    bool spamChat;              // Resend chat message every N fixed-updates
+    bool adjustChat;
+    bool noChatCooldown;
+    bool forcePrivateChat;
+    bool allowAllChatTypes;
+    bool chatAsAnyColor;
+    bool checkChat;
+    bool longerMessages;
+    bool bypassUrlBlock;
+    bool lowerRateLimits;
+
+    // ── Ship / Sabotage ──
+    bool sabotageAll;
+    bool fixAllSabotages;
+    bool alwaysRepair;
+    bool closeDoors;
+    bool openDoors;
+    bool doorsTimed;
+    bool reactorTime;
+    bool lightsAlwaysOn;
+    bool commsAlwaysOn;
+    bool oxygenAlwaysOn;
+    bool reactorDelay;
+    bool lightsAlwaysOff;
+    bool closeMeeting;
+    bool skipMeeting;
+    bool callMeeting;
+    bool unlockVents;
+    bool walkInVents;
+    bool autoOpenDoorsOnUse;
+
+    // ── Host ──
+    bool forceHost;
+    bool forceHostName;
+    bool forceStart;
+    bool forceStartGame;
+    bool forceEnd;
+    bool kickPlayer;
+    bool banPlayer;
+    bool kickBanAll;
+    bool autoStart;
+    bool autoStartCount;
+    bool autoStartTimer;
+    bool endGame;
+    bool endGameCrew;
+    bool endGameImp;
+    bool endGameDraw;
+    bool exilePlayer;
+    bool syncSettings;
+    bool voteImmune;
+    bool noGameEnd;
+    bool noOptionsLimits;
+
+    // ── Vents ──
+    bool ventAll;
+    bool ventInstant;
+    bool ventNoAnim;
+    bool ventKill;
+
+    // ── Sabotage ──
+    bool noSabotageCd;
+    bool sabotageAnywhere;
+    bool instantSabotage;
+
+    // ── Role cheats ──
+    bool endlessSsDuration;
+    bool noShapeshiftAnim;
+    bool endlessVentTime;
+    bool noVentCooldown;
+    bool noVitalsCooldown;
+    bool endlessBattery;
+    bool noTrackingCooldown;
+    bool endlessTracking;
 } MenuToggles;
 
 extern MenuToggles g_toggles;
-extern bool        g_showMenu;       // UI visibility flag
-extern bool        g_hooksReady;     // set after MSHookFunction calls succeed
+extern bool g_showMenu;
+extern bool g_hooksReady;
 
-// ============================================================================
-//  HOOK REGISTRATION  –  call each once from constructor
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HOOK DECLARATIONS – implementations in Hooks.mm
+// ═══════════════════════════════════════════════════════════════════════════════
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// Core Updates
+extern "C" void hook_FixedUpdate(void);
+extern "C" void hook_SetKillTimer(void);
+extern "C" void hook_MurderPlayer(void);
+extern "C" void hook_RpcCompleteTask(void);
+extern "C" void hook_RpcSetRole(void);
+extern "C" void hook_RpcSyncSettings(void);
+extern "C" void hook_PlayerPhysicsFixedUpdate(void);
+extern "C" void hook_PlayerPhysicsLateUpdate(void);
+extern "C" void hook_PlayerPhysicsHandleAnimation(void);
+extern "C" void hook_PlayerPhysicsCoEnterVent(void);
+extern "C" void hook_PlayerPhysicsCoExitVent(void);
+extern "C" void hook_ShipStatusFixedUpdate(void);
+extern "C" void hook_ShipStatusCalculateLightRadius(void);
+extern "C" void hook_ShipStatusUpdateSystem(void);
+extern "C" void hook_HudManagerUpdate(void);
+extern "C" void hook_AmongUsClientUpdate(void);
+extern "C" void hook_AmongUsClientOnGameJoined(void);
+extern "C" void hook_AmongUsClientStartGame(void);
 
-void hook_FixedUpdate(void);
-void hook_SetKillTimer(void);
-void hook_MurderPlayer(void);
-void hook_RpcCompleteTask(void);
-void hook_get_IsImposter(void);
-void hook_IsImposter(void);
-void hook_get_Data(void);
-void hook_CanMove(void);
-void hook_Die(void);
-void hook_Revive(void);
-void hook_SetRole(void);
-void hook_get_Role(void);
-void hook_IsRole(void);
-void hook_CanReport(void);
-void hook_CanVent(void);
-void hook_get_HasUnlocked(void);
-void hook_GetPurchaseStatus(void);
-void hook_get_GoldHats(void);
-void hook_get_Skins(void);
-void hook_get_Pets(void);
-void hook_CalculateLightRadius(void);
-void hook_get_Vision(void);
-void hook_HudUpdate(void);
-void hook_SendChat(void);
-void hook_get_AmHost(void);
-void hook_RpcStartGame(void);
-void hook_EndGame(void);
-void hook_SyncSettings(void);
+// Meetings
+extern "C" void hook_MeetingHudUpdate(void);
+extern "C" void hook_MeetingHudVotingComplete(void);
+extern "C" void hook_MeetingHudClose(void);
+extern "C" void hook_MeetingHudCastVote(void);
+extern "C" void hook_MeetingHudServerStart(void);
+extern "C" void hook_MeetingHudDeserialize(void);
 
-#ifdef __cplusplus
+// Game logic
+extern "C" void hook_GameManagerCanReportBodies(void);
+extern "C" void hook_GameManagerRpcEndGame(void);
+extern "C" void hook_GameStartManagerUpdate(void);
+extern "C" void hook_GameDataGetPlayerById(void);
+
+// Chat
+extern "C" void hook_ChatControllerSendChat(void);
+
+// Roles
+extern "C" void hook_RoleBehaviourGetIsImpostor(void);
+extern "C" void hook_RoleManagerIsImpostorRole(void);
+extern "C" void hook_RoleManagerSetRole(void);
+
+// Player
+extern "C" void hook_PlayerControlGetData(void);
+extern "C" void hook_PlayerControlCanMove(void);
+extern "C" void hook_PlayerControlDie(void);
+extern "C" void hook_PlayerControlRevive(void);
+
+// Cosmetics
+extern "C" void hook_HatManagerGetUnlockedPets(void);
+extern "C" void hook_HatManagerGetUnlockedHats(void);
+extern "C" void hook_HatManagerAllSkins(void);
+extern "C" void hook_HatManagerAllPets(void);
+extern "C" void hook_CustomizationDataSetName(void);
+extern "C" void hook_CustomizationDataSetHat(void);
+extern "C" void hook_CustomizationDataSetVisor(void);
+extern "C" void hook_CustomizationDataSetSkin(void);
+extern "C" void hook_CustomizationDataSetPet(void);
+extern "C" void hook_CustomizationDataSetNamePlate(void);
+
+// Host / Misc
+extern "C" void hook_InnerNetClientAmHost(void);
+extern "C" void hook_BanMenuSetVisible(void);
+extern "C" void hook_AccountManagerCanPlayOnline(void);
+extern "C" void hook_PingTrackerUpdate(void);
+extern "C" void hook_SceneManagerInternalSceneLoaded(void);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  UTILITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+static inline uintptr_t get_unity_base(void) {
+    return (uintptr_t)_dyld_get_image_vmaddr_slide(0);
 }
-#endif
