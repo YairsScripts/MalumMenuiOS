@@ -2,9 +2,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// When building with Xcode iOS SDK (macOS), use Apple's real headers.
-// When cross-compiling with Zig (Windows/Linux), provide minimal forward declarations.
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+// When FLOATING_OVERLAY_USE_SDK is set (Xcode build), use Apple's real headers.
+// When cross-compiling with Zig (no iOS SDK), provide minimal forward declarations.
+#ifdef FLOATING_OVERLAY_USE_SDK
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <dispatch/dispatch.h>

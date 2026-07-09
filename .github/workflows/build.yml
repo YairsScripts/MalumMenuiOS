@@ -33,7 +33,8 @@ jobs:
             -framework QuartzCore \
             -lobjc -lc++ \
             -fobjc-arc \
-            -I.
+            -I. \
+            -DFLOATING_OVERLAY_USE_SDK
 
       - name: Strip and sign
         run: |
