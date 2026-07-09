@@ -160,20 +160,13 @@ static inline bool hook_via_protect(uintptr_t target, void *replacement,
 }
 
 // Try code-patching first; fall back to entry-table hook
-// Uses get_real_offset() for correct ASLR-adjusted target address
-// Reports results to g_hookSuccess / g_hookFailed for debugging
 #define TRY_HOOK(offset, replace, origPtr) \
     do { \
         if ((offset) != 0x0) { \
-            uintptr_t _target = get_real_offset(offset); \
-            if (_target != 0 && hook_via_protect(_target, \
-                                    (void *)(replace), (void **)(origPtr))) { \
-                g_hookSuccess++; \
-            } else if (hook_via_entry_table((offset), \
-                                    (void *)(replace), (void **)(origPtr))) { \
-                g_hookSuccess++; \
-            } else { \
-                g_hookFailed++; \
+            if (!hook_via_protect(get_real_offset(offset), \
+                                  (void *)(replace), (void **)(origPtr))) { \
+                hook_via_entry_table((offset), (void *)(replace), \
+                                     (void **)(origPtr)); \
             } \
         } \
     } while (0)

@@ -98,18 +98,6 @@ static FloatingOverlay *s_shared = nil;
     self.floatingBtn.layer.borderWidth = 2.0f;
     self.floatingBtn.layer.borderColor = [UIColor whiteColor].CGColor;
 
-    // Hook status badge (top-right corner of button)
-    UILabel *badge = [[UILabel alloc] initWithFrame:CGRectMake(kIconSize - 18, -6, 22, 14)];
-    badge.text = [NSString stringWithFormat:@"%d/%d", g_hookSuccess, g_hookSuccess + g_hookFailed];
-    badge.font = [UIFont boldSystemFontOfSize:8];
-    badge.textColor = [UIColor whiteColor];
-    badge.backgroundColor = g_hookFailed > 0 ? [UIColor colorWithRed:220/255.0 green:80/255.0 blue:80/255.0 alpha:1] : [UIColor colorWithRed:80/255.0 green:220/255.0 blue:120/255.0 alpha:1];
-    badge.textAlignment = NSTextAlignmentCenter;
-    badge.layer.cornerRadius = 7;
-    badge.clipsToBounds = YES;
-    badge.tag = 99;
-    [self.floatingBtn addSubview:badge];
-
     // "M" label
     [self.floatingBtn setTitle:@"M" forState:UIControlStateNormal];
     self.floatingBtn.titleLabel.font = [UIFont boldSystemFontOfSize:20];

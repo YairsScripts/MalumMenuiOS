@@ -207,8 +207,6 @@ typedef struct {
 extern MenuToggles g_toggles;
 extern bool g_showMenu;
 extern bool g_hooksReady;
-extern int g_hookSuccess;
-extern int g_hookFailed;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  HOOK DECLARATIONS – implementations in Hooks.mm
