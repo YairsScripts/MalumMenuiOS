@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <mach-o/dyld.h>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  OFFSET DECLARATIONS – defined in TweakEntry.mm
@@ -136,6 +137,7 @@ typedef struct {
     bool longerMessages;
     bool bypassUrlBlock;
     bool lowerRateLimits;
+    bool enableChat;
 
     // ── Ship / Sabotage ──
     bool sabotageAll;
@@ -184,6 +186,7 @@ typedef struct {
     bool ventInstant;
     bool ventNoAnim;
     bool ventKill;
+    bool kickVents;
 
     // ── Sabotage ──
     bool noSabotageCd;

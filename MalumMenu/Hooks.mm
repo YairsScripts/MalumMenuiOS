@@ -18,7 +18,7 @@ static void (*orig_PlayerPhysicsHandleAnimation)(void *__this);
 static void (*orig_PlayerPhysicsCoEnterVent)(void *__this, int32_t id);
 static void (*orig_PlayerPhysicsCoExitVent)(void *__this, int32_t id);
 static void (*orig_ShipStatusFixedUpdate)(void *__this);
-static void (*orig_ShipStatusCalculateLightRadius)(void *__this, void *player);
+static float (*orig_ShipStatusCalculateLightRadius)(void *__this, void *player);
 static void (*orig_ShipStatusUpdateSystem)(void *__this, int32_t systemType, void *msg);
 static void (*orig_HudManagerUpdate)(void *__this);
 static void (*orig_AmongUsClientUpdate)(void *__this);
@@ -312,10 +312,6 @@ static void hook_MeetingHudDeserialize_repl(void *__this, void *reader, bool ini
 //  GAME LOGIC HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-static bool hook_GameManagerCanReportBodies_repl(void *__this) {
-    return orig_GameManagerCanReportBodies(__this);
-}
-
 static void hook_GameManagerRpcEndGame_repl(void *__this, int32_t endReason, bool showAd) {
     if (g_toggles.noGameEnd) return;
     orig_GameManagerRpcEndGame(__this, endReason, showAd);
@@ -325,32 +321,17 @@ static void hook_GameStartManagerUpdate_repl(void *__this) {
     orig_GameStartManagerUpdate(__this);
 }
 
-static void *hook_GameDataGetPlayerById_repl(void *__this, uint8_t playerId) {
-    return orig_GameDataGetPlayerById(__this, playerId);
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //  CHAT HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 static void hook_ChatControllerSendChat_repl(void *__this) {
     orig_ChatControllerSendChat(__this);
-    if (!g_toggles.lowerRateLimits || __this == 0) return;
-    volatile float *rate = (volatile float *)((uintptr_t)__this + 0x??);
-    if (*rate == 0.0f) *rate += 1.0f;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ROLE LOGIC HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
-
-static bool hook_RoleBehaviourGetIsImpostor_repl(void *__this) {
-    return orig_RoleBehaviourGetIsImpostor(__this);
-}
-
-static bool hook_RoleManagerIsImpostorRole_repl(void *__this, int32_t role) {
-    return orig_RoleManagerIsImpostorRole(__this, role);
-}
 
 static void hook_RoleManagerSetRole_repl(void *__this, void *targetPlayer, int32_t role) {
     orig_RoleManagerSetRole(__this, targetPlayer, role);
@@ -359,24 +340,6 @@ static void hook_RoleManagerSetRole_repl(void *__this, void *targetPlayer, int32
 // ═══════════════════════════════════════════════════════════════════════════════
 //  COSMETIC / UNLOCK HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
-
-static bool hook_HatManagerGetUnlockedPets_repl(void *__this) {
-    if (g_toggles.freeCosmetics) return true;
-    return orig_HatManagerGetUnlockedPets(__this);
-}
-
-static bool hook_HatManagerGetUnlockedHats_repl(void *__this) {
-    if (g_toggles.freeCosmetics) return true;
-    return orig_HatManagerGetUnlockedHats(__this);
-}
-
-static void *hook_HatManagerAllSkins_repl(void *__this) {
-    return orig_HatManagerAllSkins(__this);
-}
-
-static void *hook_HatManagerAllPets_repl(void *__this) {
-    return orig_HatManagerAllPets(__this);
-}
 
 static void hook_CustomizationDataSetName_repl(void *__this, void *value) {
     orig_CustomizationDataSetName(__this, value);
@@ -406,18 +369,9 @@ static void hook_CustomizationDataSetNamePlate_repl(void *__this, void *value) {
 //  HOST / MISC HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-static bool hook_InnerNetClientAmHost_repl(void *__this) {
-    return orig_InnerNetClientAmHost(__this);
-}
-
 static void hook_BanMenuSetVisible_repl(void *__this, bool show) {
     if (__this == 0) return;
     orig_BanMenuSetVisible(__this, show);
-}
-
-static bool hook_AccountManagerCanPlayOnline_repl(void *__this) {
-    if (g_toggles.unlockFeatures) return true;
-    return orig_AccountManagerCanPlayOnline(__this);
 }
 
 static void hook_PingTrackerUpdate_repl(void *__this) {
