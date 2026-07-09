@@ -72,8 +72,8 @@ static const IL2HookEntry il2_hook_table[] = {
 static inline bool page_is_writable(uintptr_t addr) {
     vm_address_t region_addr = addr;
     vm_size_t region_size = 0;
-    struct vm_region_submap_info_64 info;
-    mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
+    struct vm_region_basic_info_64 info;
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
     natural_t depth = 0;
     kern_return_t kr = vm_region_64(mach_task_self(), &region_addr, &region_size,
                                     VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info,
