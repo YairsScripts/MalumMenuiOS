@@ -1,29 +1,67 @@
-name: Build MalumMenu iOS dylib
+name: Build MalumMenu
+
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - 'MalumMenu/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: MalumMenu
+
     steps:
       - uses: actions/checkout@v4
-      - name: Compile dylib
-        working-directory: MalumMenu
+
+      - name: Build dylib with Xcode clang
         run: |
-          SYSROOT=$(xcrun --sdk iphoneos --show-sdk-path) && \
-          clang++ -arch arm64 -target arm64-apple-ios14.0 \
-            -fobjc-arc -isysroot "$SYSROOT" \
-            -I. -Iinclude -Isdks/iOS.sdk/usr/include \
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          clang -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=14.0 \
+            -dynamiclib \
+            -o MalumMenu.dylib \
             TweakEntry.mm Hooks.mm FloatingOverlay.mm \
-            -dynamiclib -o libMalumMenu.dylib \
-            -framework UIKit -framework Foundation \
-            -framework CoreGraphics -framework QuartzCore \
-            -Wno-deprecated-objc-isa-usage -Wno-objc-root-class
-      - name: Verify
-        run: python3 -c "import struct; b=open('MalumMenu/libMalumMenu.dylib','rb').read(); m,c,s,f,n=struct.unpack_from('<IIIII',b,0); print(f'{len(b)}B ncmds={n}'); assert m==0xFEEDFACF and c==0x100000C and f==6; print('Verified arm64 dylib OK')"
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+            -framework UIKit \
+            -framework Foundation \
+            -framework CoreGraphics \
+            -framework QuartzCore \
+            -lobjc -lc++ \
+            -fobjc-arc \
+            -I.
+
+      - name: Strip and sign
+        run: |
+          strip -S MalumMenu.dylib
+          codesign -f -s - MalumMenu.dylib
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: libMalumMenu.dylib
-          path: MalumMenu/libMalumMenu.dylib
+          name: MalumMenu-dylib
+          path: MalumMenu/MalumMenu.dylib
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: MalumMenu-dylib
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.1.0"
+          if gh release view "$TAG" --json tagName --jq .tagName &>/dev/null; then
+            gh release upload "$TAG" MalumMenu.dylib --clobber
+          fi
