@@ -44,6 +44,9 @@ enum {
     UIControlEventValueChanged = 1UL<<12
 };
 
+// Forward declarations for environments without iOS SDK (Zig cross-compile).
+// When building with Xcode iOS SDK, these are provided by Apple's headers.
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
 @interface NSObject
 + (instancetype)alloc;
 - (instancetype)init;
@@ -161,6 +164,7 @@ enum {
 @interface UIViewController : UIResponder
 @property (strong) UIView *view;
 @end
+#endif // __IPHONE_OS_VERSION_MIN_REQUIRED
 
 @interface FloatingOverlay : UIWindow
 + (instancetype)sharedInstance;
