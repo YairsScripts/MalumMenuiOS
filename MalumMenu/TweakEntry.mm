@@ -162,7 +162,7 @@ static void delayed_init(void) {
         }
         if (get_unity_base() == 0) return;
         sleep(10);
-        // NO HOOKS – testing if overlay alone crashes
+        register_all_hooks();
         g_hooksReady = true;
         dispatch_async(dispatch_get_main_queue(), ^{
             [FloatingOverlay present];

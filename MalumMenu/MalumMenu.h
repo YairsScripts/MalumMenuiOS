@@ -61,7 +61,7 @@ extern uintptr_t O_PingTrackerUpdate;
 extern uintptr_t O_SceneManagerInternalSceneLoaded;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  TOGGLES – one bool per cheat, matching original MalumMenu CheatToggles
+//  TOGGLES – one bool per cheat, matching original Kartex CheatToggles
 // ═══════════════════════════════════════════════════════════════════════════════
 
 typedef struct {
